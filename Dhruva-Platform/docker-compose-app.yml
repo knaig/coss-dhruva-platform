@@ -1,0 +1,60 @@
+version: "3"
+
+services:
+  server:
+    container_name: server
+    image: server
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+    #depends_on:
+      #- seed
+      #- appdb-migration
+    volumes:
+      - app_data:/server
+    ports:
+      - "$BACKEND_PORT:$BACKEND_PORT"
+    command: uvicorn main:app --workers $BACKEND_WORKERS --port $BACKEND_PORT --host 0.0.0.0 --proxy-headers
+    networks:
+      - dhruva-network
+
+  # client:
+  #   container_name: client
+  #   image: client
+  #   stdin_open: true
+  #   tty: true
+  #   ports:
+  #     - "$FRONTEND_PORT:$FRONTEND_PORT"
+  #   volumes:
+  #     - app_data:/client
+  #   env_file:
+  #     - .env
+  #   command: yarn start --port $FRONTEND_PORT
+  #   networks:
+  #     - dhruva-network
+
+  # seed:
+  #   image: seed
+  #   container_name: seed
+  #   env_file:
+  #     - .env
+  #   command: sh -c "python3 main.py"
+  #   networks:
+  #     - dhruva-network
+
+  appdb-migration:
+    image: server
+    container_name: appdb-migration
+    env_file:
+      - .env
+    command: sh -c "python3 migrate.py"
+    networks:
+      - dhruva-network
+
+volumes:
+  app_data: {}
+
+networks:
+  dhruva-network:
+    name: dhruva-network

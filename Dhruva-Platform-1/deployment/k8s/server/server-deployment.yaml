@@ -1,0 +1,220 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dhruva-server
+  namespace: dhruva
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dhruva-server
+  template:
+    metadata:
+      labels:
+        app: dhruva-server
+    spec:
+      containers:
+        - name: dhruva-server
+          image: dhruva-server:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_DB_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: APP_DB_CONNECTION_STRING
+            - name: LOG_DB_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: LOG_DB_CONNECTION_STRING
+            - name: APP_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: APP_DB_NAME
+            - name: LOG_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: LOG_DB_NAME
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: JWT_SECRET_KEY
+            - name: ADMIN_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: ADMIN_USER_PASSWORD
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: CELERY_BROKER_URL
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: REDIS_PASSWORD
+            - name: REDIS_DB
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: REDIS_DB
+            - name: CELERY_FLOWER_BROKER_API
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: CELERY_FLOWER_BROKER_API
+            - name: CELERY_FLOWER_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: CELERY_FLOWER_ADDRESS
+            - name: CELERY_FLOWER_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: CELERY_FLOWER_PORT
+            - name: FLOWER_LOGGING_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: FLOWER_LOGGING_LEVEL
+            - name: GRAFANA_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: GRAFANA_AUTH_TOKEN
+            - name: NEXT_PUBLIC_GRAFANA_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: NEXT_PUBLIC_GRAFANA_URL
+            - name: PROMETHEUS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: PROMETHEUS_URL
+            - name: PROM_AGG_GATEWAY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: PROM_AGG_GATEWAY_USERNAME
+            - name: PROM_AGG_GATEWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: PROM_AGG_GATEWAY_PASSWORD
+            - name: MONGO_APP_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: MONGO_APP_DB_USERNAME
+            - name: MONGO_APP_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: MONGO_APP_DB_PASSWORD
+            - name: MONGO_LOG_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: MONGO_LOG_DB_USERNAME
+            - name: MONGO_LOG_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: MONGO_LOG_DB_PASSWORD
+            - name: ADMIN_MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: ADMIN_MONGO_PASSWORD
+            - name: TIMESCALE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_PASSWORD
+            - name: TIMESCALE_DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_DATABASE_NAME
+            - name: TIMESCALE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_USER
+            - name: TIMESCALE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_HOST
+            - name: TIMESCALE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_PORT
+            - name: TIMESCALE_DAT
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALE_DAT
+            - name: VAD_DIR
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: VAD_DIR
+            - name: ADMIN_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: ADMIN_USER_PASSWORD
+            - name: ENV
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: ENV
+            - name: TIMESCALEDB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALEDB_USERNAME
+            - name: TIMESCALEDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALEDB_PASSWORD
+            - name: TIMESCALEDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: dhruva-secrets
+                  key: TIMESCALEDB_DATABASE
+
+          command:
+            - "uvicorn"
+            - "main:app"
+            - "--workers"
+            - "$(BACKEND_WORKERS)"
+            - "--port"
+            - "$(BACKEND_PORT)"
+            - "--host"
+            - "0.0.0.0"
+            - "--proxy-headers"
+
+      volumes:
+        - name: app-data
