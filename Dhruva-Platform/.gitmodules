@@ -1,3 +1,0 @@
-[submodule "server/schema"]
-	path = server/schema
-	url = https://github.com/AI4Bharat/Dhruva-Schema
