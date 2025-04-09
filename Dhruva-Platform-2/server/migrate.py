@@ -16,7 +16,7 @@ def parse_connection_string(conn_str: str):
     return {"mongo_username": username, "mongo_password": password}
 
 
-connection_string = os.environ["APP_DB_CONNECTION_STRING"]
+connection_string = "mongodb://dhruva-platform-app-db:27017"
 execution = (
     Execution.MIGRATE
     if os.environ["MIGRATION_ACTION"] == "migrate"

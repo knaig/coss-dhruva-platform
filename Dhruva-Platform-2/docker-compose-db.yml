@@ -57,7 +57,7 @@ services:
     command: "/bin/sh -c 'echo $$CONFIG > config/config.json ; echo $$APP > config/app.json ; node app.js'"
     environment:
       - APP={"app":{"password":"$ADMIN_MONGO_PASSWORD"}}
-      - CONFIG={"connections":{"APP":{"connection_string":"$APP_DB_CONNECTION_STRING","connection_options":{}}, "LOG":{"connection_string":"$LOG_DB_CONNECTION_STRING","connection_options":{}}}}
+      - CONFIG={"connections":{"APP":{"connection_string":"mongodb://dhruva-platform-app-db:27017","connection_options":{}}, "LOG":{"connection_string":"$LOG_DB_CONNECTION_STRING","connection_options":{}}}}
     env_file:
       - .env
     networks:

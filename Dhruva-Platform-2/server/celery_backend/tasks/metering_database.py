@@ -7,13 +7,7 @@ from sqlalchemy.orm import declarative_base
 
 load_dotenv()
 
-connection_string = "timescaledb://{}:{}@{}:{}/{}".format(
-    os.environ["TIMESCALE_USER"],
-    os.environ["TIMESCALE_PASSWORD"],
-    os.environ["TIMESCALE_HOST"],
-    os.environ["TIMESCALE_PORT"],
-    os.environ["TIMESCALE_DATABASE_NAME"],
-)
+connection_string = "postgresql://postgres:postgres@timescaledb:5432/dhruva"
 engine = create_engine(connection_string)
 
 Base = declarative_base()

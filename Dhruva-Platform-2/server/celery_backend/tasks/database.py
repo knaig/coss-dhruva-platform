@@ -9,11 +9,11 @@ from pymongo.database import Database
 load_dotenv(override=True)
 
 db_clients = {
-    "app": pymongo.MongoClient(os.environ["APP_DB_CONNECTION_STRING"]),
+    "app": pymongo.MongoClient("mongodb://dhruva-platform-app-db:27017"),
 }
 
 def AppDatabase() -> Database:
-    mongo_db = db_clients["app"][os.environ["APP_DB_NAME"]]
+    mongo_db = db_clients["app"]["dhruva"]
     return mongo_db
 
 

@@ -66,8 +66,7 @@ class StreamingServerTaskSequence:
         if "BACKEND_PORT" in os.environ:
             self.inference_url = f"http://localhost:{os.environ['BACKEND_PORT']}/services/inference/pipeline"
         else:
-            # self.inference_url = "https://api.dhruva.ai4bharat.org/services/inference/pipeline"
-            exit(f"ERROR: Please set the env var `BACKEND_PORT`")
+            self.inference_url = "http://localhost:8000/services/inference/pipeline"
 
         self.audio_service = AudioService()
 

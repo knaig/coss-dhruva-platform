@@ -71,6 +71,10 @@ app.add_middleware(
 
 app.add_middleware(DBSessionMiddleware, custom_engine=engine)
 
+db_clients = {
+    "app": pymongo.MongoClient("mongodb://dhruva-platform-app-db:27017"),
+    "log": pymongo.MongoClient("mongodb://dhruva-platform-log-db:27017"),
+}
 
 @app.on_event("startup")
 async def init_mongo_client():

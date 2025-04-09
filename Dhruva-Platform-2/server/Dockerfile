@@ -2,6 +2,7 @@ FROM python:3.10 as base
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/src
 
 RUN apt-get update && apt-get install -y libsndfile1 libsndfile1-dev ffmpeg
 
