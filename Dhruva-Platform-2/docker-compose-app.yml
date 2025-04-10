@@ -4,6 +4,7 @@ version: "3.8"
 
 services:
   server:
+    image: dhruva-platform-server:latest
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -48,6 +49,7 @@ services:
       - dhruva_network
 
   worker:
+    image: dhruva-platform-worker:latest
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -89,23 +91,26 @@ services:
       - dhruva_network
 
   app_db:
-    image: mongo:6.0
-    container_name: dhruva-platform-app-db
     platform: linux/arm64/v8
     restart: always
+    image: mongo:6.0
+    command: mongod --auth --bind_ip_all
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_APP_DB_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_APP_DB_PASSWORD}
       - MONGO_INITDB_DATABASE=${APP_DB_NAME}
+    ports:
+      - "27017:27017"
     volumes:
       - app_db_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - dhruva_network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
-    networks:
-      - dhruva_network
 
   log_db:
     image: mongo:6.0
