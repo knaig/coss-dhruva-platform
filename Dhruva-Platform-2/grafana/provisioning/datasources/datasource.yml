@@ -10,12 +10,3 @@ datasources:
     isDefault: true
     editable: false
     uid: kdjfS_R7c
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    orgId: 2
-    url: http://prometheus:9090
-    basicAuth: false
-    isDefault: true
-    editable: false
-    uid: vowwS_B4k

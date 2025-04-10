@@ -15,6 +15,7 @@ services:
       - "--web.enable-lifecycle"
     ports:
       - "9090:9090"
+    platform: linux/arm64/v8
     networks:
       - dhruva-network
 
@@ -37,22 +38,20 @@ services:
     restart: unless-stopped
     ports:
       - "4000:3000"
+    platform: linux/arm64/v8
     env_file:
       - .env
     networks:
       - dhruva-network
 
-  prom-aggregation-gateway:
-    container_name: prom-aggregation-gateway
-    image: ghcr.io/zapier/prom-aggregation-gateway:v0.7.0
+  prometheus-pushgateway:
+    container_name: prometheus-pushgateway
+    image: prom/pushgateway:v1.6.2
     volumes: 
-      - prometheus_data:/prom-agg-gateway
+      - prometheus_data:/prometheus
     ports:
-      - "8081:80"
-    env_file:
-      - .env
-    environment:
-      - PAG_AUTHUSERS=$PAG_AUTHUSERS
+      - "8082:9091"
+    platform: linux/arm64/v8
     networks:
       - dhruva-network
 

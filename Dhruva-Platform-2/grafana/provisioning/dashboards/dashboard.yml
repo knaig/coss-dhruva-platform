@@ -11,7 +11,7 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/dhruva_global.json
   - name: "Dhruva General Requests"
-    orgId: 2
+    orgId: 1
     folder: ""
     type: file
     disableDeletion: false
@@ -20,7 +20,7 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/dhruva_general_requests.json
   - name: "Dhruva Inference Requests"
-    orgId: 2
+    orgId: 1
     folder: ""
     type: file
     disableDeletion: false
