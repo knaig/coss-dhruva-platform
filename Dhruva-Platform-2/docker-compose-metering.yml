@@ -1,9 +1,7 @@
-version: "3"
-
 services:
   rabbitmq_server:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: dhruva-platform-rabbitmq
     platform: linux/arm64/v8
     hostname: rabbithost
     ports:
@@ -16,6 +14,13 @@ services:
       - .env
     networks:
       - dhruva-network
+    healthcheck:      
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_port_connectivity || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
 
   celery-metering:
     container_name: celery-metering
@@ -79,30 +84,25 @@ services:
       - dhruva-network
 
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
-    container_name: dhruva-platform-timescaledb
-    platform: linux/arm64/v8
-    restart: always
-    environment:
-      - POSTGRES_USER=${TIMESCALE_USER}
-      - POSTGRES_PASSWORD=${TIMESCALE_PASSWORD}
-      - POSTGRES_DB=${TIMESCALE_DATABASE_NAME}
+    container_name: timescaledb
+    image: "timescale/timescaledb:latest-pg15"
     ports:
-      - "${TIMESCALE_PORT}:5432"
+      - "5432:5432"
+    platform: linux/arm64/v8
     volumes:
-      - timescaledb_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DATABASE_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - timescaledb:/home/postgres/pgdata/data
+    environment:
+      - POSTGRES_PASSWORD=$TIMESCALE_PASSWORD
+      - POSTGRES_DB=$TIMESCALE_DATABASE_NAME
+      - POSTGRES_USER=$TIMESCALE_USER
+    env_file:
+      - .env
     networks:
       - dhruva-network
 
 volumes:
-  timescaledb_data:
+  timescaledb: {}
 
 networks:
   dhruva-network:
     name: dhruva-network
-    external: true
