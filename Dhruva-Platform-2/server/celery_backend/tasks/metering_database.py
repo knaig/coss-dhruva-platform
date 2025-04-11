@@ -32,4 +32,5 @@ class ApiKey(Base):
     )
 
 
-Base.metadata.create_all(engine)
+# Try commenting this out to prevent multiple services attempting table creation
+# Base.metadata.create_all(engine)

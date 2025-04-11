@@ -7,20 +7,8 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    env_file: .env
     command: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - MONGODB_URI=mongodb://${MONGO_APP_DB_USERNAME}:${MONGO_APP_DB_PASSWORD}@app_db:27017/admin?authSource=admin
-      - APP_DB_CONNECTION_STRING=mongodb://${MONGO_APP_DB_USERNAME}:${MONGO_APP_DB_PASSWORD}@app_db:27017/admin?authSource=admin
-      - RABBITMQ_HOST=rabbitmq_server
-      - RABBITMQ_PORT=5672
-      - TIMESCALE_HOST=timescaledb
-      - TIMESCALE_PORT=5432
-      - TIMESCALE_USER=${TIMESCALE_USER}
-      - TIMESCALE_PASSWORD=${TIMESCALE_PASSWORD}
-      - TIMESCALE_DATABASE_NAME=${TIMESCALE_DATABASE_NAME}
     depends_on:
       redis:
         condition: service_healthy

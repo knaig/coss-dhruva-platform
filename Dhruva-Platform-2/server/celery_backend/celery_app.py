@@ -4,20 +4,15 @@ from kombu import Exchange, Queue
 
 app = Celery("dhruva_celery")
 
-# Remove the worker_state_db default setting
-# app.conf.setdefault('worker_state_db', '/var/run/celery/worker-state')
-app.conf.setdefault('worker_prefetch_multiplier', 1)
-# Add other defaults if needed, e.g., concurrency
-# app.conf.setdefault('worker_concurrency', None)
+# Set default for task_always_eager *before* config load
+app.conf.setdefault('task_always_eager', False)
 
-# Now load the rest of the config
-app.config_from_object("celery_backend.celeryconfig", namespace="CELERY")
+# Use simple config load (matches 0423ecb)
+app.config_from_object("celery_backend.celeryconfig")
 app.autodiscover_tasks()
 
-print("🌱 v3: Celery app config initialized (worker_state_db removed)")
-# print(f"→ worker_state_db: {app.conf.worker_state_db}") # Keep this commented out for now
-# print(f"→ worker_prefetch_multiplier: {app.conf.worker_prefetch_multiplier}")
-
+# Updated print statement
+print("🌱 v6: Celery app config loaded (simple load + always_eager default)")
 
 app.conf.beat_schedule = {
     "heartbeat": {

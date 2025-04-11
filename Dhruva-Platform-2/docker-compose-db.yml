@@ -1,68 +1,97 @@
-version: "3"
-
 services:
   app_db:
     image: mongo:6.0
     container_name: dhruva-platform-app-db
-    platform: linux/arm64/v8
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_APP_DB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_APP_DB_PASSWORD}
+    volumes:
+      - app_db_data:/data/db
     ports:
       - "27017:27017"
-    volumes:
-      - app_db:/data/db
-    restart: unless-stopped
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=dhruvaadmin
-      - MONGO_INITDB_ROOT_PASSWORD=dhruva123
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
     networks:
       - dhruva-network
 
   log_db:
     image: mongo:6.0
     container_name: dhruva-platform-log-db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_LOG_DB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_LOG_DB_PASSWORD}
+    volumes:
+      - log_db_data:/data/db
     ports:
       - "27018:27017"
-    volumes:
-      - log_db:/data/db
-    restart: unless-stopped
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=dhruvalog
-      - MONGO_INITDB_ROOT_PASSWORD=dhruva123
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
     networks:
       - dhruva-network
-  
+
   redis:
-    image: redis:7.0.11
+    image: redis:7.2.4
     container_name: dhruva-platform-redis
-    platform: linux/arm64/v8
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dhruva-network
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: dhruva-platform-timescaledb
+    environment:
+      - POSTGRES_USER=${TIMESCALE_USER}
+      - POSTGRES_PASSWORD=${TIMESCALE_PASSWORD}
+      - POSTGRES_DB=${TIMESCALE_DATABASE_NAME}
     volumes:
-      - redis:/data
-    command: redis-server --requirepass dhruva123 --save 20 1 --loglevel warning
-    restart: unless-stopped
+      - timescaledb_data:/var/lib/postgresql/data
+    ports:
+      - "${TIMESCALE_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - dhruva-network
 
   mongo_express:
     image: mongo-express:latest
     container_name: dhruva-platform-mongo-express
-    platform: linux/arm64/v8
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_APP_DB_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_APP_DB_PASSWORD}
+      - ME_CONFIG_MONGODB_SERVER=app_db
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
     ports:
       - "8081:8081"
-    environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=dhruvaadmin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=dhruva123
-      - ME_CONFIG_MONGODB_URL=mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/
     depends_on:
       - app_db
     networks:
       - dhruva-network
 
-volumes:
-  app_db: {}
-  log_db: {}
-  redis: {}
-
 networks:
   dhruva-network:
     name: dhruva-network
+
+volumes:
+  timescaledb_data:
+  app_db_data:
+  log_db_data:
+  redis_data:
