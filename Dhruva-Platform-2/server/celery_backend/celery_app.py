@@ -42,6 +42,14 @@ app.conf.task_queues = (
     Queue("send-usage-email", exchange=Exchange("send-usage-email", type="direct")),
 )
 
+app.conf.task_routes = {
+    'push.metrics': {'queue': 'metrics-log'},
+    'log.data': {'queue': 'data-log'},
+    'heartbeat': {'queue': 'heartbeat'},
+    'upload.feedback.dump': {'queue': 'upload-feedback-dump'},
+    'send.usage.email': {'queue': 'send-usage-email'},
+}
+
 # Defaults
 # app.conf.task_default_queue = 'celery'
 # app.conf.task_default_exchange = 'tasks'

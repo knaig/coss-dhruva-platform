@@ -1,0 +1,8 @@
+[
+    {
+        "name": "Admin Default Key",
+        "api_key": "dhruva_admin_default_key",
+        "type": "INFERENCE",
+        "data_tracking": true
+    }
+]

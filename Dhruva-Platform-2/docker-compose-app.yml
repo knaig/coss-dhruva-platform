@@ -49,6 +49,21 @@ services:
       context: .
       dockerfile: docker/flower/Dockerfile
     container_name: dhruva-platform-flower
+    command: >
+      sh -c "
+        echo 'Waiting for RabbitMQ...' &&
+        /wait-for-it.sh rabbitmq_server:5672 -t 60 -s -- echo 'RabbitMQ is up' &&
+        echo 'Starting Flower...' &&
+        celery flower --broker=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq_server:5672/${RABBITMQ_DEFAULT_VHOST}
+      "
+    environment:
+      - FLOWER_ADDRESS=0.0.0.0
+      - FLOWER_PORT=5555
+      - FLOWER_LOGGING=DEBUG
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin123
+      - RABBITMQ_DEFAULT_VHOST=dhruva_host
+      - CELERY_BROKER_URL=amqp://admin:admin123@rabbitmq_server:5672/dhruva_host
     ports:
       - "5555:5555"
     depends_on:

@@ -1,5 +1,6 @@
 import traceback
 from typing import Any
+import os
 
 import gevent.ssl
 import requests
@@ -13,6 +14,12 @@ from ..model import Service
 
 
 class InferenceGateway:
+    def __init__(self):
+        # Get Triton endpoint from environment variable or use default
+        self.triton_endpoint = os.getenv("TRITON_ENDPOINT", "http://localhost:8000")
+        self.use_aws_triton = os.getenv("USE_AWS_TRITON", "false").lower() == "true"
+        logger.info(f"Initialized InferenceGateway with Triton endpoint: {self.triton_endpoint}")
+
     def send_inference_request(
         self,
         request_body: Any,
@@ -37,17 +44,27 @@ class InferenceGateway:
         output_list: list,
     ):
         try:
+            # Use AWS Triton endpoint if configured
+            endpoint = self.triton_endpoint if self.use_aws_triton else url
+            logger.info(f"Using Triton endpoint: {endpoint} for model: {model_name}")
+
             triton_client = http_client.InferenceServerClient(
-                url=url,
+                url=endpoint,
                 ssl=True,
                 ssl_context_factory=gevent.ssl._create_default_https_context,  # type: ignore
                 concurrency=20,
             )
 
-            # health_ctx = triton_client.is_server_ready(headers=headers)
-            # logger.info("Health ctx: {}".format(health_ctx))
-            # if not health_ctx:
-            #     raise BaseError(Errors.DHRUVA107.value, "Triton server is not ready")
+            # Check server health
+            try:
+                health_ctx = triton_client.is_server_ready(headers=headers)
+                logger.info(f"Triton server health check: {health_ctx}")
+                if not health_ctx:
+                    raise BaseError(Errors.DHRUVA107.value, "Triton server is not ready")
+            except Exception as e:
+                logger.error(f"Failed to check Triton server health: {str(e)}")
+                # Continue anyway as the server might still be usable
+
             response = triton_client.async_infer(
                 model_name,
                 model_version="1",
@@ -57,7 +74,8 @@ class InferenceGateway:
             )
             response = response.get_result(block=True, timeout=20)
 
-        except:
+        except Exception as e:
+            logger.error(f"Triton inference failed: {str(e)}")
             raise BaseError(Errors.DHRUVA101.value, traceback.format_exc())
 
         return response
