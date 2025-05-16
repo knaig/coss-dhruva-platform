@@ -2,7 +2,7 @@ services:
   rabbitmq_server:
     image: rabbitmq:3-management
     container_name: dhruva-platform-rabbitmq
-    platform: linux/arm64/v8
+    platform: linux/amd64
     hostname: rabbithost
     ports:
       - "15672:15672"
@@ -24,7 +24,7 @@ services:
 
   celery-metering:
     container_name: celery-metering
-    platform: linux/arm64/v8
+    platform: linux/amd64
     build:
       context: ./server
     working_dir: /src
@@ -43,7 +43,7 @@ services:
 
   celery-monitoring:
     container_name: celery-monitoring
-    platform: linux/arm64/v8
+    platform: linux/amd64
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -63,7 +63,7 @@ services:
 
   celery_beat:
     container_name: celery_beat
-    platform: linux/arm64/v8
+    platform: linux/amd64
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -88,7 +88,7 @@ services:
     image: "timescale/timescaledb:latest-pg15"
     ports:
       - "5432:5432"
-    platform: linux/arm64/v8
+    platform: linux/amd64
     volumes:
       - timescaledb:/home/postgres/pgdata/data
     environment:

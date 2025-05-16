@@ -41,6 +41,80 @@ DEFAULT_STREAMING_CONFIG = {
 }
 
 
+class TaskPipelineManager:
+    """
+    Manages dynamic task pipelines and their configurations
+    """
+    def __init__(self):
+        self.available_tasks = {
+            "asr": {
+                "name": "Automatic Speech Recognition",
+                "input_type": "audio",
+                "output_type": "text",
+                "config_schema": {
+                    "language": {"type": "string", "required": True},
+                    "model": {"type": "string", "required": False}
+                }
+            },
+            "translation": {
+                "name": "Translation",
+                "input_type": "text",
+                "output_type": "text",
+                "config_schema": {
+                    "source_language": {"type": "string", "required": True},
+                    "target_language": {"type": "string", "required": True}
+                }
+            },
+            "tts": {
+                "name": "Text to Speech",
+                "input_type": "text",
+                "output_type": "audio",
+                "config_schema": {
+                    "language": {"type": "string", "required": True},
+                    "voice": {"type": "string", "required": False}
+                }
+            }
+        }
+        self.pipelines = {}
+
+    def register_task(self, task_id: str, task_config: dict):
+        """Register a new task type"""
+        self.available_tasks[task_id] = task_config
+
+    def create_pipeline(self, pipeline_id: str, task_sequence: list):
+        """Create a new pipeline with a sequence of tasks"""
+        # Validate task sequence
+        for task in task_sequence:
+            if task["taskType"] not in self.available_tasks:
+                raise ValueError(f"Unknown task type: {task['taskType']}")
+            
+            # Validate task configuration against schema
+            task_schema = self.available_tasks[task["taskType"]]["config_schema"]
+            for key, value in task_schema.items():
+                if value["required"] and key not in task.get("config", {}):
+                    raise ValueError(f"Missing required config '{key}' for task {task['taskType']}")
+
+        self.pipelines[pipeline_id] = task_sequence
+        return pipeline_id
+
+    def get_pipeline(self, pipeline_id: str):
+        """Get a pipeline configuration"""
+        return self.pipelines.get(pipeline_id)
+
+    def validate_pipeline(self, task_sequence: list):
+        """Validate if a sequence of tasks can be chained together"""
+        if not task_sequence:
+            return False
+
+        for i in range(len(task_sequence) - 1):
+            current_task = self.available_tasks[task_sequence[i]["taskType"]]
+            next_task = self.available_tasks[task_sequence[i + 1]["taskType"]]
+            
+            if current_task["output_type"] != next_task["input_type"]:
+                return False
+        return True
+
+
 class StreamingServerTaskSequence:
     """
     This is a SocketIO server for simulating taskSequence inference.
@@ -77,6 +151,8 @@ class StreamingServerTaskSequence:
 
         # Storage for state specific to each client (key will be socket connection-ID string, and value would be `UserState`)
         self.client_states = {}
+
+        self.pipeline_manager = TaskPipelineManager()
 
         # Setup the communication handlers
         self.configure_socket_server()
@@ -231,15 +307,23 @@ class StreamingServerTaskSequence:
 
         @self.sio.on("start")
         async def start(sid: str, task_sequence: list, streaming_config: dict = {}):
-            self.initialize_buffer(sid)
+            if not self.pipeline_manager.validate_pipeline(task_sequence):
+                await self.sio.emit("error", {"message": "Invalid task sequence"}, room=sid)
+                return
 
-            if False:  # TODO: Validate the `task_sequence`
-                await self.sio.emit(
-                    "abort", data=("Invalid `task_sequence`!"), room=sid
-                )
-
-            self.client_states[sid].task_sequence = task_sequence
-            self.client_states[sid].input_task_type = task_sequence[0]["taskType"]
+            self.client_states[sid] = UserState(
+                input_audio__buffer=None,
+                input_audio__run_inference_once_in_samples=-1,
+                input_audio__response_frequency_in_secs=streaming_config.get("responseFrequencyInSecs", 2.0),
+                input_audio__max_inference_duration_in_samples=-1,
+                input_audio__last_inference_position_in_samples=0,
+                input_audio__auto_chunking=True,
+                input_audio__sampling_rate=-1,
+                task_sequence=task_sequence,
+                input_task_type=task_sequence[0]["taskType"] if task_sequence else None,
+                sequence_depth_to_run=streaming_config.get("responseTaskSequenceDepth", 1),
+                http_headers={}
+            )
 
             if self.client_states[sid].input_task_type == _ULCATaskType.ASR:
                 # Compute the inference_frequency (once in how many samples should we run inference)

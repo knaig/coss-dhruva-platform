@@ -41,25 +41,22 @@ export default function Login() {
   }, []);
 
   const validateCredentials = () => {
+    console.log('Attempting login with:', { email: username, password: password });
     mutation.mutate(
       { email: username, password: password },
       {
         onSuccess: (data) => {
+          console.log('Login successful:', data);
           localStorage.setItem("email", username);
-          if (localStorage.getItem("current_page")) 
-          {
-            router.push(localStorage.getItem("current_page"))
-          } 
-          else 
-          {
+          if (localStorage.getItem("current_page")) {
+            router.push(localStorage.getItem("current_page"));
+          } else {
             router.push("/services");
           }
         },
         onError: (error: any) => {
-          if (
-            error?.response.status === 401 ||
-            error?.response.status === 422
-          ) {
+          console.error('Login error:', error);
+          if (error?.response?.status === 401 || error?.response?.status === 422) {
             toast({
               title: "Error",
               description: "Invalid Credentials",
@@ -70,7 +67,7 @@ export default function Login() {
           } else {
             toast({
               title: "Error",
-              description: "Something went wrong, please try again later",
+              description: error?.response?.data?.message || "Something went wrong, please try again later",
               status: "error",
               duration: 5000,
               isClosable: true,

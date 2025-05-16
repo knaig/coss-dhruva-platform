@@ -50,7 +50,7 @@ class InferenceGateway:
 
             triton_client = http_client.InferenceServerClient(
                 url=endpoint,
-                ssl=True,
+                ssl=False,
                 ssl_context_factory=gevent.ssl._create_default_https_context,  # type: ignore
                 concurrency=20,
             )

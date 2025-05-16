@@ -83,20 +83,13 @@ class TritonUtilsService:
         input1.set_data_from_numpy(o[1].astype("int32"))
         inputs = [input0, input1]
 
-        if (
-            "conformer-hi" not in service_id
-            and "conformer-ta" not in service_id
-            and "whisper" not in service_id
-            and language != "en"
-        ):
-            # The other endpoints are multilingual and hence have LANG_ID as extra input
-            # TODO: Standardize properly as a string similar to NMT and TTS, in all Triton repos
-            input2 = http_client.InferInput("LANG_ID", (len(audio_chunks), 1), "BYTES")
-            lang_id = [language] * len(audio_chunks)
-            input2.set_data_from_numpy(
-                np.asarray(lang_id).astype("object").reshape((len(audio_chunks), 1))
-            )
-            inputs.append(input2)
+        # Always add LANG_ID, regardless of language or service_id
+        input2 = http_client.InferInput("LANG_ID", (len(audio_chunks), 1), "BYTES")
+        lang_id = [language] * len(audio_chunks)
+        input2.set_data_from_numpy(
+            np.asarray(lang_id).astype("object").reshape((len(audio_chunks), 1))
+        )
+        inputs.append(input2)
 
         if n_best_tok > 0:
             input3 = http_client.InferInput("TOPK", o[1].shape, "INT32")
