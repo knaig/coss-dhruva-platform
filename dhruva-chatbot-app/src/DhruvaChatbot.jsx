@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, Settings, X, Globe2 } from 'lucide-react';
+import { Send, Loader2, Bot, User, Settings, X, Globe2, Mic, Upload } from 'lucide-react';
 
 // API configurations for different LLM providers
 const LLM_PROVIDERS = {
@@ -592,17 +592,18 @@ export default function AdvancedChatbot() {
                 <Globe2 className="h-6 w-6 text-blue-500" />
               </button>
               {showLangMenu && (
-                <div ref={langMenuRef} className="absolute left-0 bottom-12 w-64 bg-white rounded-xl shadow-2xl p-4 z-50 border border-blue-100 animate-fade-in">
-                  <div className="grid grid-cols-2 gap-2">
+                <div ref={langMenuRef} className="absolute left-0 bottom-12 w-72 bg-white rounded-xl shadow-2xl p-4 z-50 border border-blue-100 animate-fade-in">
+                  <div className="mb-2 text-sm font-semibold text-gray-700">Language Settings</div>
+                  <div className="grid grid-cols-1 gap-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Input</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Text Input Language</label>
                       <select
                         value={inputLang}
                         onChange={e => {
                           setInputLang(e.target.value);
                           if (outputLang === inputLang) setOutputLang(e.target.value);
                         }}
-                        className="w-full px-2 py-1 rounded-md border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white/80 text-xs"
+                        className="w-full px-2 py-1 rounded-md border border-gray-300 text-gray-800 bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 appearance-none"
                       >
                         {INDIAN_LANGUAGES.map(lang => (
                           <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -610,13 +611,25 @@ export default function AdvancedChatbot() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Output</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Text Output Language</label>
                       <select
                         value={outputLang}
                         onChange={e => setOutputLang(e.target.value)}
-                        className="w-full px-2 py-1 rounded-md border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white/80 text-xs"
+                        className="w-full px-2 py-1 rounded-md border border-gray-300 text-gray-800 bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 appearance-none"
                       >
                         {INDIAN_LANGUAGES.map(lang => (
+                          <option key={lang.code} value={lang.code}>{lang.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Audio Input Language</label>
+                      <select
+                        value={audioInputLang}
+                        onChange={e => setAudioInputLang(e.target.value)}
+                        className="w-full px-2 py-1 rounded-md border border-gray-300 text-gray-800 bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 appearance-none"
+                      >
+                        {INDIAN_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
                           <option key={lang.code} value={lang.code}>{lang.name}</option>
                         ))}
                       </select>
@@ -625,86 +638,45 @@ export default function AdvancedChatbot() {
                 </div>
               )}
             </div>
-            <div className="flex flex-col items-center mr-2">
-              <label htmlFor="audio-input-lang" className="text-xs text-gray-500 mb-1">Audio Input Language</label>
-              <select
-                id="audio-input-lang"
-                value={audioInputLang}
-                onChange={e => setAudioInputLang(e.target.value)}
-                className="px-2 py-1 rounded-md border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white/80 text-xs"
+            <div className="flex items-center gap-2 w-full bg-gray-50 rounded-xl px-3 py-2 shadow-sm">
+              {/* Upload Button */}
+              <label htmlFor="audio-upload" className="p-2 rounded-full bg-white hover:bg-blue-50 cursor-pointer" title="Upload Audio (WAV/MP3)">
+                <Upload className="h-5 w-5 text-blue-500" />
+              </label>
+              {/* Mic Button */}
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`p-2 rounded-full ${isRecording ? 'bg-red-100' : 'bg-white'} hover:bg-blue-50`}
+                title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                disabled={audioLoading}
               >
-                {INDIAN_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
-                  <option key={lang.code} value={lang.code}>{lang.name}</option>
-                ))}
-              </select>
+                {isRecording ? (
+                  <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <Mic className="h-5 w-5 text-blue-500" />
+                )}
+              </button>
+              {/* Text Input and Send */}
+              <input
+                type="text"
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message..."
+                className="flex-grow w-full p-3 border border-gray-300 rounded-3xl shadow focus:ring-2 focus:ring-blue-100 focus:border-blue-300 bg-white text-gray-900 placeholder-gray-400 font-medium transition-all duration-200 mx-2"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading || !input.trim()}
+                className="inline-flex items-center px-4 py-2 rounded-2xl shadow text-base font-semibold text-blue-500 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send size={20} />
+              </button>
             </div>
-            <input
-              type="file"
-              accept="audio/wav"
-              style={{ display: 'none' }}
-              id="audio-upload"
-              disabled={audioLoading}
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                setAudioLoading(true);
-                try {
-                  const transcript = await transcribeAudio({
-                    file,
-                    sourceLang: audioInputLang,
-                  });
-                  setInput(transcript);
-                } catch (err) {
-                  console.error('ASR error:', err);
-                  setInput('[ASR failed]');
-                }
-                setAudioLoading(false);
-              }}
-            />
-            <label htmlFor="audio-upload" className="p-2 rounded-full bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-emerald-200 cursor-pointer mr-1" title="Upload Audio (WAV)">
-              {audioLoading ? (
-                <svg className="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                </svg>
-               ) : (
-                <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l3-3m-3 3l-3-3m9 6H6" /></svg>
-              )}
-            </label>
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`p-2 rounded-full ${isRecording ? 'bg-red-100' : 'bg-white'} hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-emerald-200`}
-              title={isRecording ? 'Stop Recording' : 'Start Recording'}
-              disabled={audioLoading}
-            >
-              {audioLoading ? (
-                <svg className="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                </svg>
-              ) : isRecording ? (
-                <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              ) : (
-                <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /></svg>
-              )}
-            </button>
-            <input
-              type="text"
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
-              className="flex-1 p-3 border border-gray-300 rounded-3xl shadow focus:ring-2 focus:ring-blue-100 focus:border-blue-300 bg-white text-gray-900 placeholder-gray-400 font-medium transition-all duration-200"
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading || !input.trim()}
-              className="inline-flex items-center px-4 py-2 rounded-2xl shadow text-base font-semibold text-blue-500 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              <Send size={20} />
-            </button>
           </div>
         </div>
       </div>
