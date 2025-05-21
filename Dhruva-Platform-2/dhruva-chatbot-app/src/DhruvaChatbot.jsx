@@ -129,7 +129,7 @@ async function transcribeAudio({ file, sourceLang }) {
   formData.append('config', JSON.stringify({
     controlConfig: { dataTracking: true },
     config: {
-      audioFormat: 'mp3',
+      audioFormat: 'wav',
       language: {
         sourceLanguage: sourceLang,
         sourceScriptCode: LANGUAGE_SCRIPT_MAP[sourceLang] || '',
@@ -403,6 +403,32 @@ export default function AdvancedChatbot() {
   // Track LLM input/output for each message
   const [llmIO, setLlmIO] = useState([]); // [{input: string, output: string}]
   
+  // Handle audio file upload
+  const handleAudioUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check if file is an audio file
+    if (!file.type.startsWith('audio/')) {
+      alert('Please upload an audio file (WAV/MP3)');
+      return;
+    }
+
+    setAudioLoading(true);
+    try {
+      const transcript = await transcribeAudio({
+        file,
+        sourceLang: audioInputLang,
+      });
+      setInput(transcript);
+    } catch (err) {
+      console.error('Audio upload error:', err);
+      setInput('[ASR failed]');
+    } finally {
+      setAudioLoading(false);
+    }
+  };
+  
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
@@ -643,6 +669,14 @@ export default function AdvancedChatbot() {
               <label htmlFor="audio-upload" className="p-2 rounded-full bg-white hover:bg-blue-50 cursor-pointer" title="Upload Audio (WAV/MP3)">
                 <Upload className="h-5 w-5 text-blue-500" />
               </label>
+              <input
+                id="audio-upload"
+                type="file"
+                accept="audio/*"
+                onChange={handleAudioUpload}
+                className="hidden"
+                disabled={audioLoading}
+              />
               {/* Mic Button */}
               <button
                 onClick={isRecording ? stopRecording : startRecording}

@@ -16,7 +16,6 @@ import { GiHamburgerMenu } from "react-icons/gi";
 import SidebarMobile from "./SidebarMobile";
 import { BiUser } from "react-icons/bi";
 
-
 const NavbarMobile = () => {
   const [title, setTitle] = useState<String>("Dashboard");
   const { isOpen, onToggle } = useDisclosure();
@@ -31,31 +30,13 @@ const NavbarMobile = () => {
 
   useEffect(() => {
     let url = router.pathname.split("/");
-    switch (url[1]) {
-      case "services":
-        if (url[2] && url[2].split("?")[0] == "view") setTitle("View Service");
-        else setTitle("Services");
-        break;
-      case "billing":
-        setTitle("Billing");
-        break;
-      case "models":
-        setTitle("Model Registry");
-        break;
-      case "admin":
-        setTitle("Admin Dashboard");
-        break;
-      case "profile":
-        setTitle("Profile");
-        break;
-      case "pipeline":
-        setTitle("Pipeline");
-        break;
-      default:
-        setTitle("Dashboard");
-        break;
+    if (url[1] === "testing-ground") {
+      setTitle("Testing Ground");
+    } else {
+      setTitle("Dashboard");
     }
   }, [router.pathname]);
+
   return (
     <Box
       paddingLeft={5}
@@ -85,16 +66,12 @@ const NavbarMobile = () => {
             <Menu>
               <MenuButton width="2rem" px={0} py={2} transition="all 0.2s">
                 <BiUser />
-                {/* <HStack>
-              <BiUser/>
-               <Text>{user?.name}</Text>
-              </HStack> */}
-            </MenuButton>
-            <MenuList>
-              <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
-              <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
-            </MenuList>
-          </Menu>
+              </MenuButton>
+              <MenuList>
+                <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
+                <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
+              </MenuList>
+            </Menu>
           </Box>
         </HStack>
       </Box>

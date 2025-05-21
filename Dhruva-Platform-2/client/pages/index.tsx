@@ -35,7 +35,7 @@ export default function Login() {
       } 
       else 
       {
-        router.push("/services");
+        router.push("/testing-ground");
       }
     }
   }, []);
@@ -52,7 +52,7 @@ export default function Login() {
           } 
           else 
           {
-            router.push("/services");
+            router.push("/testing-ground");
           }
         },
         onError: (error: any) => {
