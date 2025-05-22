@@ -235,9 +235,9 @@ export default function ViewModel({ ...props }) {
                       spacingX="40px"
                       spacingY="20px"
                     >
-                      {benchmarkValues.map((benchmark, idx) => {
+                      {benchmarkValues.map((benchmark) => {
                         return (
-                          <Stat key={idx}>
+                          <Stat key={benchmark.language}>
                             <StatLabel>
                               {benchmarkMetric.toUpperCase()} Score
                             </StatLabel>
@@ -366,7 +366,7 @@ export default function ViewModel({ ...props }) {
                     >
                       {benchmarkValues.map((benchmark) => {
                         return (
-                          <Stat>
+                          <Stat key={benchmark.language}>
                             <StatLabel>
                               {benchmarkMetric.toUpperCase()} Score
                             </StatLabel>

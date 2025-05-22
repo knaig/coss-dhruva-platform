@@ -1,72 +1,75 @@
-import { Box, HStack, Menu, MenuButton, MenuItem, MenuList, Select, Spacer, Text } from "@chakra-ui/react";
+import { Box, HStack, Menu, MenuButton, MenuItem, MenuList, Text, Button, Flex, Spacer } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { BiUser } from "react-icons/bi";
 import { useQuery } from "@tanstack/react-query";
 import { getUser } from "../../api/authAPI";
-
+import Image from "next/image";
 
 const Navbar = () => {
-  const [title, setTitle] = useState<String>("Dashboard");
+  const [title, setTitle] = useState<String>("Testing Ground");
   const router = useRouter();
   const {data:user} = useQuery(['User'], ()=>getUser(localStorage.getItem('email')))
-  const Logout = () =>
-  {
+
+  const Logout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("email");
     router.push("/");
-  }
+  };
+
   useEffect(() => {
     let url = router.pathname.split("/");
-    switch (url[1]) {
-      case "services":
-        if (url[2] && url[2].split("?")[0] == "view") setTitle("View Service");
-        else setTitle("Services");
-        break;
-      case "billing":
-        setTitle("Billing");
-        break;
-      case "models":
-        setTitle("Model Registry");
-        break;
-      case "admin":
-        setTitle("Admin Dashboard");
-        break;
-      case "profile":
-        setTitle("Profile");
-        break;
-      case "pipeline":
-        setTitle("Pipeline");
-        break;
-      default:
-        setTitle("Dashboard");
-        break;
+    if (url[1] === "testing-ground") {
+      setTitle("Testing Ground");
+    } else {
+      setTitle("Testing Ground");
     }
   }, [router.pathname]);
+
   return (
     <Box
-      paddingLeft={10}
-      width="120%"
-      height={"6.5rem"}
-      background="white"
-      marginLeft={"-2rem"}
+      as="nav"
+      w="100%"
+      bg="white"
+      boxShadow="sm"
+      px={[2, 4, 8]}
+      py={3}
+      position="sticky"
+      top={0}
+      zIndex={100}
     >
-      <HStack>
-        <Text fontWeight={"bold"} fontSize="3xl" ml="2rem" pt="2rem">
-          {title}
+      <Flex align="center" maxW="8xl" mx="auto">
+        {/* Logo and App Name */}
+        <HStack spacing={3}>
+          <Image alt="logo" src="/AI4Bharat.svg" height={40} width={40} />
+          <Text fontWeight="bold" fontSize="2xl" color="orange.600" letterSpacing="wide">
+            Dhruva
         </Text>
-        <Spacer/>
-        <Box pt="2rem" pr="25rem">
-        <Menu>
-        <MenuButton
-          px={4}
-          py={2}
-          transition='all 0.2s'
+        </HStack>
+        <Spacer />
+        {/* Testing Ground Button */}
+        <Button
+          colorScheme="orange"
+          variant={router.pathname.startsWith("/testing-ground") ? "solid" : "outline"}
+          size="lg"
+          fontWeight="bold"
+          fontSize="lg"
+          borderRadius="xl"
+          px={8}
+          mx={4}
+          onClick={() => router.push("/testing-ground")}
+          boxShadow={router.pathname.startsWith("/testing-ground") ? "md" : undefined}
         >
+          Testing Ground
+        </Button>
+        <Spacer />
+        {/* User Profile */}
+        <Menu>
+          <MenuButton px={4} py={2} transition='all 0.2s'>
           <HStack>
-          <BiUser/>
-          <Text>{user?.name}</Text>
+              <BiUser size={22} />
+              <Text fontWeight="medium">{user?.name || "Admin"}</Text>
           </HStack>
         </MenuButton>
         <MenuList>
@@ -74,8 +77,7 @@ const Navbar = () => {
           <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
         </MenuList>
       </Menu>
-      </Box>
-      </HStack>
+      </Flex>
     </Box>
   );
 };

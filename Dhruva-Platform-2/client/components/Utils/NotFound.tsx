@@ -13,7 +13,7 @@ const NotFound = (props) => {
           height={300}
           width={300}
           alt="No Results Found"
-          src="NoResults.svg"
+          src="/NoResults.svg"
         />
         <Text fontSize={"lg"} color="gray.400">
           Uh Oh! No Results Found
@@ -29,7 +29,7 @@ const NotFound = (props) => {
           height={400}
           width={400}
           alt="No Results Found"
-          src="NoResults.svg"
+          src="/NoResults.svg"
         />
         <Text fontSize={"lg"} color="gray.400">
           Uh Oh! No Results Found

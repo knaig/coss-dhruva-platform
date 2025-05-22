@@ -7,25 +7,19 @@ function timeout(delay: number) {
 }
 
 const login = async (userDetails : loginFormat) => {
-  try {
-    const response = await apiInstance.post("/auth/signin", userDetails);
-    let token = response.data.token;
-    let role = response.data.role;
-    let user_id = response.data.id;
-    if (token) {
-      localStorage.setItem("refresh_token", token);
-      localStorage.setItem("user_id", user_id);
-    }
-    if (role) {
-      localStorage.setItem("user_role", role);
-    }
-    await timeout(1000);
-    await getNewAccessToken();
-    return response.data;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+  const response = await apiInstance.post("/auth/signin", userDetails);
+  let token = response.data.token;
+  let role = response.data.role;
+  let user_id = response.data.id;
+  if (token) {
+    localStorage.setItem("refresh_token", token);
+    localStorage.setItem("user_id", user_id);
   }
+  if (role) {
+    localStorage.setItem("user_role", role);
+  }
+  await timeout(1000);
+  await getNewAccessToken();
 };
 
 const getUser = async (email: string) => {

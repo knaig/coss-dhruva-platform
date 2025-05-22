@@ -134,7 +134,7 @@ const monitoring = () => {
               >
                 <option value=".*">Overall</option>
                 {userslist?.map((user: any) => {
-                  return <option value={user._id}>{user.name}</option>;
+                  return <option key={user._id} value={user._id}>{user.name}</option>;
                 })}
               </Select>
             </HStack>
@@ -152,7 +152,7 @@ const monitoring = () => {
               >
                 <option value=".*">Overall</option>
                 {filteredServices?.map((s: any) => {
-                  return <option value={s.serviceId}>{s.name}</option>;
+                  return <option key={s.serviceId} value={s.serviceId}>{s.name}</option>;
                 })}
               </Select>
             </HStack>
@@ -174,12 +174,12 @@ const monitoring = () => {
                   inferenceServiceId !== ".*" ? (
                     keyslist &&
                     keyslist["api_keys"]?.map((k: any) => {
-                      return <option value={k.name}>{k.name}</option>;
+                      return <option key={k.name} value={k.name}>{k.name}</option>;
                     })
                   ) : (
                     keyslist2 &&
                     keyslist2["api_keys"]?.map((k: any) => {
-                      return <option value={k.name}>{k.name}</option>;
+                      return <option key={k.name} value={k.name}>{k.name}</option>;
                     })
                   )
                 ) : (
