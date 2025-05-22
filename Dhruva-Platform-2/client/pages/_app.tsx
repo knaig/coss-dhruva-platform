@@ -15,7 +15,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const smallscreen = useMediaQuery("(max-width: 1080px)");
   return (
     <>
-      {smallscreen ? <NavbarMobile /> : <Navbar />}
+          {smallscreen ? <NavbarMobile /> : <Navbar />}
       <Box px={[2, 4, 8]} py={[2, 4]}>{children}</Box>
     </>
   );
@@ -24,13 +24,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <ChakraProvider theme={customTheme}>
+    <ChakraProvider theme={customTheme}>
         <Layout>
           <Component {...pageProps} />
         </Layout>
       </ChakraProvider>
       <ReactQueryDevtools />
-    </QueryClientProvider>
+      </QueryClientProvider>
   );
 }
 

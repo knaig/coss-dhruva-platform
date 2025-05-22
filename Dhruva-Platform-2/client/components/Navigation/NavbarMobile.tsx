@@ -33,7 +33,7 @@ const NavbarMobile = () => {
     if (url[1] === "testing-ground") {
       setTitle("Testing Ground");
     } else {
-      setTitle("Dashboard");
+        setTitle("Dashboard");
     }
   }, [router.pathname]);
 
@@ -66,12 +66,12 @@ const NavbarMobile = () => {
             <Menu>
               <MenuButton width="2rem" px={0} py={2} transition="all 0.2s">
                 <BiUser />
-              </MenuButton>
-              <MenuList>
-                <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
-                <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
-              </MenuList>
-            </Menu>
+            </MenuButton>
+            <MenuList>
+              <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
+              <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
+            </MenuList>
+          </Menu>
           </Box>
         </HStack>
       </Box>

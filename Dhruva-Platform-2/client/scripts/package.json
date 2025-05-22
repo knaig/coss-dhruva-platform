@@ -1,0 +1,13 @@
+{
+  "name": "dhruva-load-test",
+  "version": "1.0.0",
+  "description": "Load testing script for Dhruva APIs",
+  "main": "load-test.js",
+  "scripts": {
+    "start": "node load-test.js",
+    "generate-audio": "node generate-sample-audio.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.7"
+  }
+} 

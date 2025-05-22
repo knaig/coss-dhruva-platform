@@ -45,7 +45,7 @@ const Navbar = () => {
           <Image alt="logo" src="/AI4Bharat.svg" height={40} width={40} />
           <Text fontWeight="bold" fontSize="2xl" color="orange.600" letterSpacing="wide">
             Dhruva
-          </Text>
+        </Text>
         </HStack>
         <Spacer />
         {/* Testing Ground Button */}
@@ -67,16 +67,16 @@ const Navbar = () => {
         {/* User Profile */}
         <Menu>
           <MenuButton px={4} py={2} transition='all 0.2s'>
-            <HStack>
+          <HStack>
               <BiUser size={22} />
               <Text fontWeight="medium">{user?.name || "Admin"}</Text>
-            </HStack>
-          </MenuButton>
-          <MenuList>
-            <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
-            <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
-          </MenuList>
-        </Menu>
+          </HStack>
+        </MenuButton>
+        <MenuList>
+          <MenuItem onClick={()=>router.push('/profile')} value="profile">My Profile</MenuItem>
+          <MenuItem onClick={Logout} value="logout">Logout</MenuItem>
+        </MenuList>
+      </Menu>
       </Flex>
     </Box>
   );

@@ -36,6 +36,8 @@ const LANGUAGE_SCRIPT_MAP = {
 
 async function translateText({ text, sourceLang, targetLang }) {
   if (sourceLang === targetLang) return text;
+  console.log(`[Translation] Starting translation from ${sourceLang} to ${targetLang}`);
+  
   const endpoint = "http://13.203.149.17:8000/services/inference/translation";
   const payload = {
     controlConfig: { dataTracking: true },
@@ -56,22 +58,28 @@ async function translateText({ text, sourceLang, targetLang }) {
     Authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
     "Content-Type": "application/json",
   };
+  
   try {
+    console.log(`[Translation] Sending request to endpoint: ${endpoint}`);
     const res = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),
     });
     const data = await res.json();
+    console.log(`[Translation] Response received:`, data);
+    
     if (data && data.output && data.output[0] && data.output[0].target) {
+      console.log(`[Translation] Translation successful:`, data.output[0].target);
       return data.output[0].target;
     } else if (data && data.output && data.output[0]) {
+      console.log(`[Translation] Translation successful (alternative):`, data.output[0]);
       return data.output[0];
     } else {
-      throw new Error("Translation failed");
+      throw new Error("Translation failed - invalid response format");
     }
   } catch (err) {
-    console.error("Translation error:", err);
+    console.error(`[Translation] Error during translation:`, err);
     return text + " [Translation failed]";
   }
 }
@@ -138,10 +146,13 @@ export default function UserTestingGround() {
   const messagesEndRef = useRef(null);
   const [textInputLang, setTextInputLang] = useState("en");
   const [outputLang, setOutputLang] = useState("en");
-  const [isRecording, setIsRecording] = useState(false);
+  const [textIsRecording, setTextIsRecording] = useState(false);
+  const [voiceIsRecording, setVoiceIsRecording] = useState(false);
+  const textMediaRecorderRef = useRef<any>(null);
+  const voiceMediaRecorderRef = useRef<any>(null);
+  const textRecordedChunksRef = useRef<any[]>([]);
+  const voiceRecordedChunksRef = useRef<any[]>([]);
   const [audioLoading, setAudioLoading] = useState(false);
-  const mediaRecorderRef = useRef<any>(null);
-  const recordedChunksRef = useRef<any[]>([]);
   const [audioInputLang, setAudioInputLang] = useState("hi");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ttsLoadingIdx, setTtsLoadingIdx] = useState(null);
@@ -158,23 +169,33 @@ export default function UserTestingGround() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    const pipelineId = Math.random().toString(36).substring(7); // Unique ID for this pipeline run
+    console.log(`[Text Chat Pipeline ${pipelineId}] Starting pipeline...`);
+    
     const userMessage = input.trim();
     setInput("");
     setTextMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
+    
     try {
       let llmInput = userMessage;
       // Translate input to English if needed
       if (textInputLang !== "en") {
+        console.log(`[Text Chat Pipeline ${pipelineId}] Translating to English...`);
         llmInput = await translateText({ text: userMessage, sourceLang: textInputLang, targetLang: "en" });
+        console.log(`[Text Chat Pipeline ${pipelineId}] Translation Result:`, llmInput);
       }
+      
+      // LLM
+      console.log(`[Text Chat Pipeline ${pipelineId}] Sending to LLM...`);
       const res = await fetch(BACKEND_CHAT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: llmInput, provider: "GEMINI" }),
       });
       const data = await res.json();
-      console.log("Chatbot API response:", data);
+      console.log(`[Text Chat Pipeline ${pipelineId}] LLM Response:`, data);
+      
       let assistantReply = "[No response]";
       if (
         data.candidates &&
@@ -190,12 +211,23 @@ export default function UserTestingGround() {
       } else {
         assistantReply = JSON.stringify(data);
       }
+      
       // Translate output if needed
       if (outputLang !== "en") {
+        console.log(`[Text Chat Pipeline ${pipelineId}] Translating to ${outputLang}...`);
         assistantReply = await translateText({ text: assistantReply, sourceLang: "en", targetLang: outputLang });
+        console.log(`[Text Chat Pipeline ${pipelineId}] Final Translation:`, assistantReply);
       }
+      
       setTextMessages((prev) => [...prev, { role: "assistant", content: assistantReply }]);
+      console.log(`[Text Chat Pipeline ${pipelineId}] Pipeline completed successfully`);
     } catch (err) {
+      console.error(`[Text Chat Pipeline ${pipelineId}] Error:`, err);
+      console.error(`[Text Chat Pipeline ${pipelineId}] Error details:`, {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
       setTextMessages((prev) => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]);
     } finally {
       setIsLoading(false);
@@ -216,71 +248,84 @@ export default function UserTestingGround() {
 
   // ASR utility
   async function transcribeAudio({ file, sourceLang }) {
-    // Read file as base64
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        resolve(result.split(",")[1]);
+    console.log(`[ASR] Starting transcription for language: ${sourceLang}`);
+    try {
+      // Read file as base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+      });
+      console.log(`[ASR] File converted to base64, size: ${base64Data.length} characters`);
+      
+      // Send JSON POST with base64 audio
+      const endpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
+      const payload = {
+        audio: [
+          {
+            audioContent: base64Data,
+          },
+        ],
+        config: {
+          language: {
+            sourceLanguage: sourceLang,
+          },
+          serviceId: "ai4bharat/indictasr",
+          audioFormat: "wav",
+          encoding: "base64",
+          samplingRate: 16000,
+        },
+        controlConfig: { dataTracking: true },
       };
-      reader.onerror = reject;
-    });
-    // Send JSON POST with base64 audio
-    const endpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
-    const payload = {
-      audio: [
-        {
-          audioContent: base64Data,
+      console.log(`[ASR] Sending request to endpoint: ${endpoint}`);
+      
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
+          "Content-Type": "application/json",
         },
-      ],
-      config: {
-        language: {
-          sourceLanguage: sourceLang,
-        },
-        serviceId: "ai4bharat/indictasr",
-        audioFormat: "wav",
-        encoding: "base64",
-        samplingRate: 16000,
-      },
-      controlConfig: { dataTracking: true },
-    };
-    const headers = {
-      accept: "application/json",
-      authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
-      "Content-Type": "application/json",
-    };
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data && data.output && data.output[0]) {
-      if (data.output[0].transcript) {
-        return data.output[0].transcript;
-      } else if (data.output[0].source) {
-        return data.output[0].source;
+        body: JSON.stringify(payload),
+      });
+      
+      const data = await res.json();
+      console.log(`[ASR] Response received:`, data);
+      
+      if (data && data.output && data.output[0]) {
+        if (data.output[0].transcript) {
+          console.log(`[ASR] Transcription successful:`, data.output[0].transcript);
+          return data.output[0].transcript;
+        } else if (data.output[0].source) {
+          console.log(`[ASR] Transcription successful (source):`, data.output[0].source);
+          return data.output[0].source;
+        } else {
+          throw new Error("ASR failed - no transcript in response");
+        }
       } else {
-        throw new Error("ASR failed");
+        throw new Error("ASR failed - invalid response format");
       }
-    } else {
-      throw new Error("ASR failed");
+    } catch (err) {
+      console.error(`[ASR] Error during transcription:`, err);
+      throw err;
     }
   }
 
-  // Voice recording handlers
-  const startRecording = async () => {
+  // Replace shared recording handlers with separate ones
+  const startTextRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new window.MediaRecorder(stream);
-      recordedChunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      textMediaRecorderRef.current = new window.MediaRecorder(stream);
+      textRecordedChunksRef.current = [];
+      textMediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) textRecordedChunksRef.current.push(e.data);
       };
-      mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
-        // Convert WebM to WAV before sending
+      textMediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(textRecordedChunksRef.current, { type: "audio/webm" });
         const wavBlob = await webmBlobToWavBlob(blob);
         const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
         setAudioLoading(true);
@@ -295,27 +340,52 @@ export default function UserTestingGround() {
         }
         setAudioLoading(false);
       };
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
+      textMediaRecorderRef.current.start();
+      setTextIsRecording(true);
     } catch (err) {
       console.error("Microphone access denied or error:", err);
     }
   };
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (mediaRecorderRef.current.stream) {
-        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+
+  const stopTextRecording = () => {
+    if (textMediaRecorderRef.current) {
+      textMediaRecorderRef.current.stop();
+      setTextIsRecording(false);
+      if (textMediaRecorderRef.current.stream) {
+        textMediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
       }
-      // After stopping, process the audio
-      setTimeout(async () => {
-        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceMediaRecorderRef.current = new window.MediaRecorder(stream);
+      voiceRecordedChunksRef.current = [];
+      voiceMediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) voiceRecordedChunksRef.current.push(e.data);
+      };
+      voiceMediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(voiceRecordedChunksRef.current, { type: "audio/webm" });
         const wavBlob = await webmBlobToWavBlob(blob);
         const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
         await handleVoiceChatPipeline(file);
-        recordedChunksRef.current = [];
-      }, 100);
+        voiceRecordedChunksRef.current = [];
+      };
+      voiceMediaRecorderRef.current.start();
+      setVoiceIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied or error:", err);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (voiceMediaRecorderRef.current) {
+      voiceMediaRecorderRef.current.stop();
+      setVoiceIsRecording(false);
+      if (voiceMediaRecorderRef.current.stream) {
+        voiceMediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      }
     }
   };
 
@@ -339,65 +409,87 @@ export default function UserTestingGround() {
   };
 
   const fetchTTS = async ({ text, lang }) => {
-    const endpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
-    const payload = {
-      input: [
-        { source: text }
-      ],
-      config: {
-        serviceId: "ai4bharat/indictts--gpu-t4",
-        gender: "male",
-        samplingRate: 22050,
-        audioFormat: "wav",
-        language: {
-          sourceLanguage: lang // Only sourceLanguage, no sourceScriptCode
-        }
-      },
-      controlConfig: { dataTracking: true }
-    };
-    const accessToken = localStorage.getItem("access_token");
-    const headers = {
-      accept: "application/json",
-      authorization: `Bearer ${accessToken}`,
-      "x-auth-source": "AUTH_TOKEN",
-      "Content-Type": "application/json",
-    };
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data && data.audio && data.audio[0] && data.audio[0].audioContent) {
-      return data.audio[0].audioContent;
+    console.log(`[TTS] Starting TTS for language: ${lang}`);
+    try {
+      const endpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
+      const payload = {
+        input: [{ source: text }],
+        config: {
+          serviceId: "ai4bharat/indictts--gpu-t4",
+          gender: "male",
+          samplingRate: 22050,
+          audioFormat: "wav",
+          language: {
+            sourceLanguage: lang
+          }
+        },
+        controlConfig: { dataTracking: true }
+      };
+      console.log(`[TTS] Sending request to endpoint: ${endpoint}`);
+      
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
+          "x-auth-source": "AUTH_TOKEN",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      const data = await res.json();
+      console.log(`[TTS] Response received`);
+      
+      if (data && data.audio && data.audio[0] && data.audio[0].audioContent) {
+        console.log(`[TTS] Audio generated successfully`);
+        return data.audio[0].audioContent;
+      }
+      throw new Error('TTS failed - no audio content in response');
+    } catch (err) {
+      console.error(`[TTS] Error during TTS:`, err);
+      throw err;
     }
-    throw new Error('TTS failed');
   };
 
   function playBase64Wav(base64) {
     const audio = new Audio('data:audio/wav;base64,' + base64);
-    audio.play();
+    audio.play().catch(err => {
+      console.error(`[Audio Playback] Error playing audio:`, err);
+    });
   }
 
   // Voice Chat pipeline
   async function handleVoiceChatPipeline(audioFile: File) {
     setVoiceLoading(true);
+    const pipelineId = Math.random().toString(36).substring(7); // Unique ID for this pipeline run
+    console.log(`[Voice Chat Pipeline ${pipelineId}] Starting pipeline...`);
+    
     try {
       // 1. ASR
+      console.log(`[Voice Chat Pipeline ${pipelineId}] Starting ASR...`);
       const transcript = await transcribeAudio({ file: audioFile, sourceLang: voiceInputLang });
+      console.log(`[Voice Chat Pipeline ${pipelineId}] ASR Result:`, transcript);
       setVoiceMessages((prev) => [...prev, { role: "user", content: transcript }]);
+      
       // 2. Translate to EN if needed
       let llmInput = transcript;
       if (voiceInputLang !== "en") {
+        console.log(`[Voice Chat Pipeline ${pipelineId}] Translating to English...`);
         llmInput = await translateText({ text: transcript, sourceLang: voiceInputLang, targetLang: "en" });
+        console.log(`[Voice Chat Pipeline ${pipelineId}] Translation Result:`, llmInput);
       }
+      
       // 3. LLM
+      console.log(`[Voice Chat Pipeline ${pipelineId}] Sending to LLM...`);
       const res = await fetch(BACKEND_CHAT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: llmInput, provider: "GEMINI" }),
       });
       const data = await res.json();
+      console.log(`[Voice Chat Pipeline ${pipelineId}] LLM Response:`, data);
+      
       let llmOutput = "[No response]";
       if (
         data.candidates &&
@@ -413,19 +505,35 @@ export default function UserTestingGround() {
       } else {
         llmOutput = JSON.stringify(data);
       }
+      
       // 4. Translate back if needed
       let finalText = llmOutput;
       if (voiceInputLang !== "en") {
+        console.log(`[Voice Chat Pipeline ${pipelineId}] Translating back to ${voiceInputLang}...`);
         finalText = await translateText({ text: llmOutput, sourceLang: "en", targetLang: voiceInputLang });
+        console.log(`[Voice Chat Pipeline ${pipelineId}] Final Translation:`, finalText);
       }
+      
       setVoiceMessages((prev) => [...prev, { role: "assistant", content: finalText }]);
+      
       // 5. TTS
+      console.log(`[Voice Chat Pipeline ${pipelineId}] Starting TTS...`);
       const ttsAudioBase64 = await fetchTTS({ text: finalText, lang: voiceInputLang });
+      console.log(`[Voice Chat Pipeline ${pipelineId}] TTS generated successfully`);
       playBase64Wav(ttsAudioBase64);
+      
+      console.log(`[Voice Chat Pipeline ${pipelineId}] Pipeline completed successfully`);
     } catch (err) {
+      console.error(`[Voice Chat Pipeline ${pipelineId}] Error:`, err);
+      console.error(`[Voice Chat Pipeline ${pipelineId}] Error details:`, {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
       setVoiceMessages((prev) => [...prev, { role: "assistant", content: "[Pipeline failed]" }]);
+    } finally {
+      setVoiceLoading(false);
     }
-    setVoiceLoading(false);
   }
 
   return (
@@ -551,14 +659,14 @@ export default function UserTestingGround() {
                 <Box as="form" onSubmit={e => { e.preventDefault(); sendMessage(); }}>
                   <HStack spacing={2}>
                     <IconButton
-                      aria-label={isRecording ? "Stop Recording" : "Start Recording"}
+                      aria-label={textIsRecording ? "Stop Recording" : "Start Recording"}
                       icon={audioLoading ? <Spinner size="sm" /> : <FaMicrophone />}
-                      colorScheme={isRecording ? "red" : "orange"}
-                      onClick={isRecording ? stopRecording : startRecording}
+                      colorScheme={textIsRecording ? "red" : "orange"}
+                      onClick={textIsRecording ? stopTextRecording : startTextRecording}
                       isLoading={audioLoading}
                       borderRadius="xl"
                       size="lg"
-                      title={isRecording ? "Stop Recording" : "Start Recording"}
+                      title={textIsRecording ? "Stop Recording" : "Start Recording"}
                     />
                     {/* Upload Button */}
                     <input
@@ -655,9 +763,9 @@ export default function UserTestingGround() {
                         </Box>
                       </Flex>
                     ))}
-                    {(voiceLoading || isRecording) && (
+                    {(voiceLoading || voiceIsRecording) && (
                       <Flex justify="center" align="center" w="100%" minH="48px">
-                        {isRecording ? (
+                        {voiceIsRecording ? (
                           <Box textAlign="center">
                             <Box mb={1}>
                               <Box w="10" h="10" bgGradient="linear(to-br, orange.400, orange.300)" borderRadius="full" mx="auto" className="animate-pulse" boxShadow="xl" />
@@ -677,7 +785,7 @@ export default function UserTestingGround() {
                 <Box w="100%" display="flex" justifyContent="center" mt={2}>
                   <Button
                     leftIcon={<FaMicrophone />}
-                    colorScheme={isRecording ? "red" : "orange"}
+                    colorScheme={voiceIsRecording ? "red" : "orange"}
                     size="lg"
                     borderRadius="full"
                     px={8}
@@ -685,13 +793,13 @@ export default function UserTestingGround() {
                     fontSize="xl"
                     fontWeight="bold"
                     boxShadow="xl"
-                    onClick={isRecording ? stopRecording : startRecording}
+                    onClick={voiceIsRecording ? stopVoiceRecording : startVoiceRecording}
                     isLoading={voiceLoading}
                     disabled={voiceLoading}
                     _focus={{ boxShadow: "outline" }}
-                    className={isRecording ? "animate-pulse" : ""}
+                    className={voiceIsRecording ? "animate-pulse" : ""}
                   >
-                    {isRecording ? "Stop Recording" : "Tap to Speak"}
+                    {voiceIsRecording ? "Stop Recording" : "Tap to Speak"}
                   </Button>
                 </Box>
               </VStack>

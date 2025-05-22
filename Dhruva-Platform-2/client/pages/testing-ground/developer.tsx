@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Box, Button, Flex, Heading, VStack, HStack, Select, Input, Textarea, Text, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, VStack, HStack, Select, Input, Textarea, Text, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs, ButtonGroup } from "@chakra-ui/react";
 import ContentLayout from "../../components/Layouts/ContentLayout";
 import Head from "next/head";
 import dynamic from 'next/dynamic';
@@ -38,27 +38,9 @@ const LANGUAGE_SCRIPT_MAP = {
   or: "Orya",
 };
 
-function FeatureButton({ label, selected, onClick }) {
-  return (
-    <Button
-      colorScheme={selected ? "orange" : "gray"}
-      variant={selected ? "solid" : "outline"}
-      size="lg"
-      onClick={onClick}
-      w="180px"
-      h="60px"
-      fontWeight="bold"
-      fontSize="xl"
-      boxShadow={selected ? "md" : undefined}
-    >
-      {label}
-    </Button>
-  );
-}
-
 export default function DevTestingGround() {
   const [selectedTab, setSelectedTab] = useState("api-testing");
-  const [feature, setFeature] = useState(null);
+  const [feature, setFeature] = useState("translation");
 
   // Language settings
   const [inputLang, setInputLang] = useState("en");
@@ -79,6 +61,13 @@ export default function DevTestingGround() {
   const [pipelineTranslation, setPipelineTranslation] = useState('');
   const [pipelineAudio, setPipelineAudio] = useState('');
   const pipelineAudioFileRef = useRef(null);
+
+  const features = [
+    { key: "translation", label: "Translation" },
+    { key: "asr", label: "ASR" },
+    { key: "tts", label: "TTS" },
+    { key: "pipeline", label: "Pipeline" },
+  ];
 
   // Translation API
   async function handleTranslate() {
@@ -376,12 +365,28 @@ export default function DevTestingGround() {
 
   const renderAPITesting = () => (
     <Box>
-        <HStack spacing={8} mb={8}>
-          <FeatureButton label="Translation" selected={feature === "translation"} onClick={() => setFeature("translation")}/>
-          <FeatureButton label="ASR" selected={feature === "asr"} onClick={() => setFeature("asr")}/>
-          <FeatureButton label="TTS" selected={feature === "tts"} onClick={() => setFeature("tts")}/>
-        <FeatureButton label="Pipeline" selected={feature === "pipeline"} onClick={() => setFeature("pipeline")}/>
-        </HStack>
+      <ButtonGroup spacing={4} mb={8}>
+        {features.map((f, idx) => (
+          <Button
+            key={f.key}
+            onClick={() => setFeature(f.key)}
+            size="lg"
+            fontWeight="bold"
+            fontSize="xl"
+            px={10}
+            py={6}
+            borderRadius="2xl"
+            colorScheme="orange"
+            variant={feature === f.key ? "solid" : "outline"}
+            boxShadow={feature === f.key ? "xl" : "md"}
+            zIndex={feature === f.key ? 1 : 0}
+            transition="all 0.2s"
+            _active={{ bg: "orange.600" }}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </ButtonGroup>
       {/* Feature UIs */}
       {feature === "translation" && (
         <Box>
