@@ -76,7 +76,7 @@
     },
     {
       "cacheTimeout": null,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -155,7 +155,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -238,7 +238,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -351,7 +351,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -448,7 +448,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -542,7 +542,7 @@
     },
     {
       "cacheTimeout": null,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -613,7 +613,7 @@
     },
     {
       "cacheTimeout": null,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -694,7 +694,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
         "definition": "label_values(service)",
         "description": null,
         "error": null,
@@ -721,7 +721,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
         "definition": "",
         "description": null,
         "error": null,

@@ -28,6 +28,7 @@ from log.logger import LogConfig
 from middleware import PrometheusGlobalMetricsMiddleware
 from module import *
 from seq_streamer import StreamingServerTaskSequence
+from prometheus_client import make_asgi_app
 
 dictConfig(LogConfig().dict())
 
@@ -37,6 +38,10 @@ app = FastAPI(
     title="Dhruva API",
     description="Backend API for communicating with the Dhruva platform",
 )
+
+# Mount the metrics app using the registry from custom_metrics
+metrics_app = make_asgi_app(registry=registry)
+app.mount("/metrics", metrics_app)
 
 streamer = StreamingServerTaskSequence(
     max_connections=int(os.environ.get("MAX_SOCKET_CONNECTIONS_PER_WORKER", -1))
@@ -66,7 +71,7 @@ app.add_middleware(
     app_name="Dhruva",
     registry=registry,
     custom_labels=["api_key_name", "user_id"],
-    custom_metrics=[INFERENCE_REQUEST_COUNT, INFERENCE_REQUEST_DURATION_SECONDS],
+    custom_metrics=[],
 )
 
 app.add_middleware(DBSessionMiddleware, custom_engine=engine)

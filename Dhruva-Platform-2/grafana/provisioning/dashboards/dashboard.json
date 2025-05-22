@@ -32,7 +32,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -120,7 +120,7 @@
       }
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -174,7 +174,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -226,7 +226,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -283,7 +283,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Total user and system CPU time spent in seconds",
       "fieldConfig": {
         "defaults": {
@@ -370,7 +370,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -425,7 +425,7 @@
       "type": "gauge"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -510,7 +510,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fill": 10,
       "fillGradient": 3,
       "gridPos": {
@@ -600,7 +600,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -613,7 +613,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -698,7 +698,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -784,7 +784,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -801,7 +801,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -917,7 +917,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -1007,7 +1007,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1020,7 +1020,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Total count of responses by method, path and status codes",
       "fieldConfig": {
         "defaults": {
@@ -1108,7 +1108,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Total count of responses by method, path and status codes",
       "fieldConfig": {
         "defaults": {
@@ -1196,7 +1196,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Total count of responses by method, path and status codes",
       "fieldConfig": {
         "defaults": {
@@ -1285,7 +1285,7 @@
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1298,7 +1298,7 @@
       "type": "row"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Objects collected during gc",
       "fieldConfig": {
         "defaults": {
@@ -1384,7 +1384,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Uncollectable object found during GC",
       "fieldConfig": {
         "defaults": {
@@ -1470,7 +1470,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": null,
+      "datasource": {"type": "prometheus", "uid": "kdjfS_R7c"},
       "description": "Number of times this generation was collected",
       "fill": 1,
       "fillGradient": 0,

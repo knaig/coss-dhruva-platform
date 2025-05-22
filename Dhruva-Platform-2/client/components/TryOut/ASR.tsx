@@ -235,37 +235,12 @@ const ASRTry: React.FC<Props> = (props) => {
   };
 
   useEffect(() => {
-    // Check if mediaDevices is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setPermission(false);
-      setModal(
-        <Box
-          mt="1rem"
-          width={"100%"}
-          minH={"3rem"}
-          border={"1px"}
-          borderColor={"red.500"}
-          borderRadius={"md"}
-          p={4}
-          bg={"red.50"}
-        >
-          <Text color="red.500">
-            Your browser doesn't support audio recording. Please use a modern browser like Chrome, Firefox, or Edge.
-          </Text>
-        </Box>
-      );
-      return;
-    }
-
-    // Request microphone access
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
         setAudioStream(stream);
-        setPermission(true);
       })
-      .catch((error) => {
-        console.error("Error accessing microphone:", error);
+      .catch((e: any) => {
         setPermission(false);
         setModal(
           <Box
@@ -273,27 +248,22 @@ const ASRTry: React.FC<Props> = (props) => {
             width={"100%"}
             minH={"3rem"}
             border={"1px"}
-            borderColor={"red.500"}
-            borderRadius={"md"}
-            p={4}
-            bg={"red.50"}
+            borderColor={"gray.300"}
+            background={"red.50"}
           >
-            <Text color="red.500">
-              {error.name === "NotAllowedError" 
-                ? "Microphone access was denied. Please allow microphone access to use ASR."
-                : "Error accessing microphone. Please check your microphone settings and try again."}
-            </Text>
+            <HStack ml="1rem" mr="1rem" mt="0.6rem">
+              <Text color={"red.600"}>Required Permissions Denied</Text>
+              <Spacer />
+              <CloseIcon
+                onClick={() => setModal(<></>)}
+                color={"red.600"}
+                fontSize={"xs"}
+              />
+            </HStack>
           </Box>
         );
       });
-
-    // Cleanup function
-    return () => {
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+  }, [recording]);
 
   useEffect(() => {
     const uniqueSourceLanguages: any = Array.from(

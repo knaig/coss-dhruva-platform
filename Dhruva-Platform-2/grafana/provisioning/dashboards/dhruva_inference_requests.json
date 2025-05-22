@@ -33,7 +33,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "vowwS_B4k"
+        "uid": "kdjfS_R7c"
       },
       "fieldConfig": {
         "defaults": {
@@ -81,7 +81,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -98,7 +98,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "vowwS_B4k"
+        "uid": "kdjfS_R7c"
       },
       "fieldConfig": {
         "defaults": {
@@ -146,7 +146,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.5, sum(rate(dhruva_inference_request_duration_seconds_bucket{inference_service=~\"$inferenceServiceId\", user_id=~\"$userId\", api_key_name=~\"$apiKeyName\", task_type=~\"$taskType\", source_language=~\"$sourceLanguage\", target_language=~\"$targetLanguage\"}[5m]) > 0) by (le)) or vector(0)",
@@ -162,7 +162,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "vowwS_B4k"
+        "uid": "kdjfS_R7c"
       },
       "fieldConfig": {
         "defaults": {
@@ -214,7 +214,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -231,7 +231,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "vowwS_B4k"
+        "uid": "kdjfS_R7c"
       },
       "fieldConfig": {
         "defaults": {
@@ -311,7 +311,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -328,7 +328,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "vowwS_B4k"
+        "uid": "kdjfS_R7c"
       },
       "fieldConfig": {
         "defaults": {
@@ -408,7 +408,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -421,7 +421,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -435,7 +435,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -449,7 +449,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "vowwS_B4k"
+            "uid": "kdjfS_R7c"
           },
           "editorMode": "code",
           "exemplar": true,

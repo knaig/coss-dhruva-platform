@@ -56,12 +56,6 @@ class PrometheusGlobalMetricsMiddleware(BaseHTTPMiddleware):
             (jsonpickle.encode(self.registry, keys=True),), queue="metrics-log"
         )
 
-        self.request_count.clear()
-        self.request_duration_seconds.clear()
-
-        for metric in self.custom_metrics:
-            metric.clear()
-
         return response
 
     @property
