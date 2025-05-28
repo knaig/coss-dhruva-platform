@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { Box, Button, Flex, Heading, VStack, HStack, Select, Input, Textarea, Text, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs, ButtonGroup } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, VStack, HStack, Select, Input, Textarea, Text, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs, ButtonGroup, Icon } from "@chakra-ui/react";
 import ContentLayout from "../../components/Layouts/ContentLayout";
 import Head from "next/head";
 import dynamic from 'next/dynamic';
+import { FaMicrophone } from "react-icons/fa";
 
 // Dynamically import the main pages
 const ServicesPage = dynamic(() => import('../services'), { ssr: false });
@@ -38,6 +39,51 @@ const LANGUAGE_SCRIPT_MAP = {
   or: "Orya",
 };
 
+// Utility: Convert WebM Blob to WAV Blob using AudioContext
+async function webmBlobToWavBlob(webmBlob) {
+  const arrayBuffer = await webmBlob.arrayBuffer();
+  const audioCtx = new window.AudioContext();
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  function encodeWAV(audioBuffer) {
+    const numChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+    const samples = audioBuffer.length * numChannels;
+    const buffer = new ArrayBuffer(44 + samples * 2);
+    const view = new DataView(buffer);
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * bitDepth / 8, true);
+    view.setUint16(32, numChannels * bitDepth / 8, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples * 2, true);
+    let offset = 44;
+    for (let i = 0; i < audioBuffer.length; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        let sample = audioBuffer.getChannelData(ch)[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+  return encodeWAV(audioBuffer);
+}
+
 export default function DevTestingGround() {
   const [selectedTab, setSelectedTab] = useState("api-testing");
   const [feature, setFeature] = useState("translation");
@@ -61,6 +107,10 @@ export default function DevTestingGround() {
   const [pipelineTranslation, setPipelineTranslation] = useState('');
   const [pipelineAudio, setPipelineAudio] = useState('');
   const pipelineAudioFileRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const mediaStreamRef = useRef(null);
 
   const features = [
     { key: "translation", label: "Translation" },
@@ -68,6 +118,16 @@ export default function DevTestingGround() {
     { key: "tts", label: "TTS" },
     { key: "pipeline", label: "Pipeline" },
   ];
+
+  const handleFeatureChange = (newFeature) => {
+    if (isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+    setFeature(newFeature);
+    setTextInput("");
+    setTextOutput("");
+  };
 
   // Translation API
   async function handleTranslate() {
@@ -363,13 +423,52 @@ export default function DevTestingGround() {
       setIsLoading(false);
   }
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new window.MediaRecorder(stream);
+      recordedChunksRef.current = [];
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      mediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        const wavBlob = await webmBlobToWavBlob(blob);
+        const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        if (feature === 'asr') {
+          fileInputRef.current.files = dataTransfer.files;
+        } else if (feature === 'pipeline') {
+          pipelineAudioFileRef.current.files = dataTransfer.files;
+        }
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied or error:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      }
+    }
+  };
+
   const renderAPITesting = () => (
     <Box>
       <ButtonGroup spacing={4} mb={8}>
         {features.map((f, idx) => (
           <Button
             key={f.key}
-            onClick={() => setFeature(f.key)}
+            onClick={() => handleFeatureChange(f.key)}
             size="lg"
             fontWeight="bold"
             fontSize="xl"
@@ -447,6 +546,9 @@ export default function DevTestingGround() {
             </Box>
           </HStack>
           <Input type="file" accept="audio/*" mb={4} ref={fileInputRef} />
+          <Button colorScheme="orange" onClick={isRecording ? stopRecording : startRecording} mb={4} mr={4} bg={isRecording ? "red.500" : "orange.500"}>
+            <Icon as={FaMicrophone} boxSize={5} />
+          </Button>
             <Button colorScheme="orange" onClick={handleASR} isLoading={isLoading} mb={4}>Transcribe</Button>
             <Textarea
               placeholder="ASR transcript output..."
@@ -542,6 +644,9 @@ export default function DevTestingGround() {
             </Box>
           </HStack>
           <Input type="file" accept="audio/*" mb={4} ref={pipelineAudioFileRef} />
+          <Button colorScheme="orange" onClick={isRecording ? stopRecording : startRecording} mb={4} mr={4} bg={isRecording ? "red.500" : "orange.500"}>
+            <Icon as={FaMicrophone} boxSize={5} />
+          </Button>
           <Button colorScheme="orange" onClick={handlePipeline} isLoading={isLoading} mb={4}>Run Pipeline</Button>
           <Box mt={4}>
             {pipelineTranscript && (

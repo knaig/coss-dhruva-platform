@@ -3,6 +3,7 @@ import { Box, Flex, Input, Button, Spinner, Heading, Text, VStack, HStack, IconB
 import { ArrowUpIcon } from "@chakra-ui/icons";
 import ContentLayout from "../../components/Layouts/ContentLayout";
 import { FaMicrophone, FaUpload, FaVolumeUp, FaUserCircle, FaRobot } from "react-icons/fa";
+import { apiInstance } from '../../api/apiConfig';
 
 const BACKEND_CHAT_ENDPOINT = "http://localhost:3001/api/chat";
 
@@ -52,23 +53,10 @@ async function translateText({ text, sourceLang, targetLang }) {
     },
     input: [{ source: text }],
   };
-  const headers = {
-    accept: "application/json",
-    "x-auth-source": "API_KEY",
-    Authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
-    "Content-Type": "application/json",
-  };
-  
   try {
     console.log(`[Translation] Sending request to endpoint: ${endpoint}`);
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+    const { data } = await apiInstance.post(endpoint, payload);
     console.log(`[Translation] Response received:`, data);
-    
     if (data && data.output && data.output[0] && data.output[0].target) {
       console.log(`[Translation] Translation successful:`, data.output[0].target);
       return data.output[0].target;
@@ -247,7 +235,7 @@ export default function UserTestingGround() {
   const assistantTextColor = useColorModeValue("gray.800", "white");
 
   // ASR utility
-  async function transcribeAudio({ file, sourceLang }) {
+  const transcribeAudio = async ({ file, sourceLang }) => {
     console.log(`[ASR] Starting transcription for language: ${sourceLang}`);
     try {
       // Read file as base64
@@ -262,9 +250,8 @@ export default function UserTestingGround() {
       });
       console.log(`[ASR] File converted to base64, size: ${base64Data.length} characters`);
       
-      // Send JSON POST with base64 audio
-      const endpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
-      const payload = {
+      const asrEndpoint = "http://13.203.149.17:8000/services/inference/asr?serviceId=ai4bharat/indictasr";
+      const asrPayload = {
         audio: [
           {
             audioContent: base64Data,
@@ -281,21 +268,9 @@ export default function UserTestingGround() {
         },
         controlConfig: { dataTracking: true },
       };
-      console.log(`[ASR] Sending request to endpoint: ${endpoint}`);
-      
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      const data = await res.json();
+      console.log(`[ASR] Sending request to endpoint: ${asrEndpoint}`);
+      const { data } = await apiInstance.post(asrEndpoint, asrPayload);
       console.log(`[ASR] Response received:`, data);
-      
       if (data && data.output && data.output[0]) {
         if (data.output[0].transcript) {
           console.log(`[ASR] Transcription successful:`, data.output[0].transcript);
@@ -313,7 +288,7 @@ export default function UserTestingGround() {
       console.error(`[ASR] Error during transcription:`, err);
       throw err;
     }
-  }
+  };
 
   // Replace shared recording handlers with separate ones
   const startTextRecording = async () => {
@@ -411,8 +386,8 @@ export default function UserTestingGround() {
   const fetchTTS = async ({ text, lang }) => {
     console.log(`[TTS] Starting TTS for language: ${lang}`);
     try {
-      const endpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
-      const payload = {
+      const ttsEndpoint = "http://13.203.149.17:8000/services/inference/tts?serviceId=ai4bharat/indictts--gpu-t4";
+      const ttsPayload = {
         input: [{ source: text }],
         config: {
           serviceId: "ai4bharat/indictts--gpu-t4",
@@ -425,22 +400,9 @@ export default function UserTestingGround() {
         },
         controlConfig: { dataTracking: true }
       };
-      console.log(`[TTS] Sending request to endpoint: ${endpoint}`);
-      
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          authorization: "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09",
-          "x-auth-source": "AUTH_TOKEN",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      const data = await res.json();
+      console.log(`[TTS] Sending request to endpoint: ${ttsEndpoint}`);
+      const { data } = await apiInstance.post(ttsEndpoint, ttsPayload);
       console.log(`[TTS] Response received`);
-      
       if (data && data.audio && data.audio[0] && data.audio[0].audioContent) {
         console.log(`[TTS] Audio generated successfully`);
         return data.audio[0].audioContent;

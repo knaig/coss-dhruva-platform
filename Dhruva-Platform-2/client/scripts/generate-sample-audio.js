@@ -3,12 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const TTS_ENDPOINT = "http://13.203.149.17:8000/services/inference/tts";
-const AUTH_TOKEN = "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09";
+// const AUTH_TOKEN = "Xhf5jWXfkam42bKqEk5PgIusSDsgamh4y0gRL7zs1xUINKQbyI7LX0L02mpMtv09";
 
 const headers = {
   accept: "application/json",
-  "x-auth-source": "API_KEY",
-  Authorization: AUTH_TOKEN,
+  "x-auth-source": "AUTH_TOKEN",
+  Authorization: `Bearer ${process.env.API_KEY}`,
   "Content-Type": "application/json"
 };
 

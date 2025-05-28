@@ -49,58 +49,23 @@ export default function Models() {
   };
 
   const filterToggler = () => {
-    if (task !== "" || sourceLang !== "" || targetLang !== "")
-      setFilteredModels(
-        models.filter((model) => {
-          let found = false;
-          if (targetLang === "" && sourceLang !== "") {
-            model.languages.every(
-              (language: {
-                sourceLanguage: string;
-                targetLanguage: string;
-              }) => {
-                if (language.sourceLanguage === sourceLang) {
-                  found = true;
-                  return false;
-                }
-                return true;
-              }
-            );
-          } else if (sourceLang === "" && targetLang !== "") {
-            model.languages.every(
-              (language: {
-                sourceLanguage: string;
-                targetLanguage: string;
-              }) => {
-                if (language.targetLanguage === targetLang) {
-                  found = true;
-                  return false;
-                }
-                return true;
-              }
-            );
-          } else if (targetLang !== "" && sourceLang !== "") {
-            model.languages.every(
-              (language: {
-                sourceLanguage: string;
-                targetLanguage: string;
-              }) => {
-                if (
-                  language.targetLanguage === targetLang &&
-                  language.sourceLanguage === sourceLang
-                ) {
-                  found = true;
-                  return false;
-                }
-                return true;
-              }
-            );
-          } else if (targetLang === "" && sourceLang === "" && task !== "") {
-            return model.task.type.includes(task);
-          }
-          return found && model.task.type.includes(task);
-        })
+    let filtered = models;
+    if (task) {
+      filtered = filtered.filter(model =>
+        model.task && model.task === task
       );
+    }
+    if (sourceLang) {
+      filtered = filtered.filter(model =>
+        model.languages && model.languages.some(lang => lang.split('-')[0] === sourceLang)
+      );
+    }
+    if (targetLang) {
+      filtered = filtered.filter(model =>
+        model.languages && model.languages.some(lang => lang.split('-')[1] === targetLang)
+            );
+    }
+    setFilteredModels(filtered);
   };
 
   const sourceLangToggler = (event: any) => {
