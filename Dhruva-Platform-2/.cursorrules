@@ -1,0 +1,829 @@
+# Dhruva Platform - AI Assistant Rules
+
+## Project Overview
+Dhruva Platform is an AI/ML model serving platform for Indian language processing, providing APIs for translation, ASR (Automatic Speech Recognition), TTS (Text-to-Speech), NER (Named Entity Recognition), and transliteration services.
+
+## Core Architecture
+
+### Backend (Python/FastAPI)
+- **Framework**: FastAPI with modular router structure
+- **Database**: MongoDB (primary data), TimescaleDB (metrics), Redis (caching)
+- **Authentication**: Dual system (API keys + JWT tokens)
+- **Task Queue**: Celery with RabbitMQ broker
+- **Monitoring**: Prometheus metrics + Grafana dashboards
+- **Deployment**: Docker + Docker Compose multi-service architecture
+
+### Frontend (TypeScript/Next.js)
+- **Framework**: Next.js 13 with TypeScript
+- **UI Library**: Chakra UI + Framer Motion animations
+- **State Management**: TanStack React Query for server state
+- **API Client**: Axios with automatic token refresh interceptors
+
+## Directory Structure & Conventions
+
+### Backend Structure
+```
+server/
+├── main.py                 # FastAPI app entry point
+├── module/                 # Business logic modules
+│   ├── auth/              # Authentication module
+│   │   ├── model/         # Pydantic models
+│   │   ├── repository/    # Data access layer
+│   │   ├── router/        # API endpoints
+│   │   └── service/       # Business logic
+│   └── services/          # Core services module
+│       ├── model/         # Domain models
+│       ├── repository/    # Data repositories
+│       ├── router/        # API routers
+│       └── service/       # Service layer
+├── schema/                # Request/Response schemas
+│   ├── auth/             # Auth-related schemas
+│   └── services/         # Service-related schemas
+├── db/                   # Database utilities
+├── auth/                 # Authentication providers
+├── exception/            # Custom exceptions
+└── cache/               # Redis caching layer
+```
+
+### Frontend Structure
+```
+client/
+├── api/                  # API client functions
+├── components/           # React components
+├── pages/               # Next.js pages
+├── types/               # TypeScript definitions
+├── hooks/               # Custom React hooks
+└── utils/               # Utility functions
+```
+
+## Coding Patterns & Standards
+
+### FastAPI Router Pattern
+```python
+# Standard router structure
+router = APIRouter(
+    prefix="/endpoint_prefix",
+    dependencies=[
+        Depends(AuthProvider),
+        Depends(ApiKeyTypeAuthorizationProvider(ApiKeyType.INFERENCE)),
+    ],
+    responses={"401": {"model": ClientErrorResponse}},
+)
+
+@router.get("/endpoint", response_model=List[ResponseModel])
+async def endpoint_function(
+    repository: Repository = Depends(Repository),
+    session: RequestSession = Depends(InjectRequestSession),
+):
+    # Implementation
+```
+
+### Repository Pattern
+```python
+class ModelRepository(BaseRepository[Model]):
+    __collection_name__ = "model"
+
+    def __init__(self, db: Database = Depends(AppDatabase)) -> None:
+        super().__init__(db, self.__collection_name__)
+
+    def find_by_id(self, id: str) -> Optional[Model]:
+        return super().find_one({"modelId": id})
+```
+
+### Data Transformation Pattern
+Always transform complex database models to simplified API responses:
+```python
+# Transform complex DB objects to simple response schemas
+transformed_model = ModelViewResponse(
+    modelId=model.modelId,
+    languages=[f"{lang['sourceLanguage']}-{lang['targetLanguage']}"
+              for lang in model.languages[:10]],
+    domain=model.domain[0] if model.domain else "general",
+    submitter=model.submitter.name,
+    task=model.task.type,
+    source="dhruva"
+)
+```
+
+### Error Handling Pattern
+```python
+# Use specific error codes from Errors enum
+try:
+    result = repository.find_all()
+except Exception:
+    raise BaseError(Errors.DHRUVA106.value, traceback.format_exc())
+
+# Client errors for user input validation
+if not response:
+    raise ClientError(status.HTTP_404_NOT_FOUND, message="Invalid Model Id")
+```
+
+## Naming Conventions
+
+### Python (Backend)
+- **Files**: snake_case (e.g., `model_repository.py`, `auth_service.py`)
+- **Classes**: PascalCase with descriptive suffixes
+  - Models: `User`, `Model`, `Service`
+  - Repositories: `UserRepository`, `ModelRepository`
+  - Services: `AuthService`, `DetailsService`
+  - Requests: `CreateUserRequest`, `ModelViewRequest`
+  - Responses: `UserResponse`, `ModelViewResponse`
+- **Functions/Methods**: snake_case (e.g., `find_by_id`, `create_user`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRIES`, `DEFAULT_TIMEOUT`)
+
+### TypeScript (Frontend)
+- **Files**: camelCase (e.g., `modelAPI.ts`, `authAPI.ts`)
+- **Interfaces**: PascalCase (e.g., `ModelList`, `ServiceView`)
+- **Functions**: camelCase (e.g., `listModels`, `getUser`)
+- **Components**: PascalCase (e.g., `ModelCard`, `ServiceList`)
+
+### Database
+- **Collections**: lowercase singular (e.g., `user`, `model`, `service`)
+- **Fields**: camelCase matching Pydantic models
+
+## Authentication Patterns
+
+### API Key Authentication
+```python
+# Headers required for API key auth
+headers = {
+    "Authorization": "api_key_value",
+    "x-auth-source": "API_KEY"
+}
+```
+
+### JWT Token Authentication
+```python
+# Headers for JWT auth
+headers = {
+    "Authorization": "Bearer jwt_token",
+    "x-auth-source": "AUTH_TOKEN"
+}
+```
+
+## Database Interaction Guidelines
+
+### MongoDB Queries
+- Use repository pattern, never direct MongoDB calls in routers
+- Always handle exceptions and convert to appropriate error types
+- Use Pydantic models for data validation
+
+### Data Transformation
+- Database models often contain complex nested objects
+- API responses should use simplified, flattened structures
+- Always transform data between database and API layers
+
+## Docker & Deployment Architecture
+
+### Multi-Service Architecture
+The Dhruva Platform uses a 4-tier Docker Compose architecture:
+
+1. **Database Layer** (`docker-compose-db.yml`):
+   - MongoDB (app_db): Primary application data on port 27017
+   - MongoDB (log_db): Logging data on port 27018
+   - Redis: Caching layer on port 6379
+   - TimescaleDB: Time-series metrics on port 5432
+   - Mongo Express: Database admin UI on port 8081
+
+2. **Application Layer** (`docker-compose-app.yml`):
+   - FastAPI Server: Main API server on port 8000
+   - Celery Worker: Background task processing
+   - Flower: Celery monitoring UI on port 5555
+
+3. **Metering Layer** (`docker-compose-metering.yml`):
+   - RabbitMQ: Message broker on ports 5672/15672
+   - Celery Metering: Data logging worker (queues: data-log, heartbeat, upload-feedback-dump, send-usage-email)
+   - Celery Monitoring: Metrics worker (queue: metrics-log)
+   - Celery Beat: Scheduled task scheduler
+
+4. **Monitoring Layer** (`docker-compose-monitoring.yml`):
+   - Prometheus: Metrics collection on port 9090
+   - Grafana: Visualization dashboards on port 3000
+   - Pushgateway: Metrics ingestion on port 9091
+
+### Complete Deployment Commands
+
+#### Full Stack Deployment
+```bash
+# Deploy all services in correct order
+docker compose -f docker-compose-db.yml -f docker-compose-metering.yml \
+  -f docker-compose-monitoring.yml -f docker-compose-app.yml \
+  up -d --remove-orphans
+
+# Force recreation of all services
+docker compose -f docker-compose-db.yml -f docker-compose-metering.yml \
+  -f docker-compose-monitoring.yml -f docker-compose-app.yml \
+  up --force-recreate -d
+```
+
+#### Ordered Service Startup
+```bash
+# 1. Start databases first
+docker compose -f docker-compose-db.yml up -d --remove-orphans
+
+# 2. Start metering services (depends on databases)
+docker compose -f docker-compose-metering.yml up -d --remove-orphans
+
+# 3. Start monitoring services
+docker compose -f docker-compose-monitoring.yml up -d --remove-orphans
+
+# 4. Start application services (depends on all above)
+docker compose -f docker-compose-app.yml up -d --remove-orphans
+```
+
+#### Service Shutdown
+```bash
+# Shutdown all services
+docker compose -f docker-compose-app.yml -f docker-compose-monitoring.yml \
+  -f docker-compose-metering.yml -f docker-compose-db.yml down
+
+# Shutdown with volume cleanup (DESTRUCTIVE)
+docker compose -f docker-compose-app.yml -f docker-compose-monitoring.yml \
+  -f docker-compose-metering.yml -f docker-compose-db.yml down -v
+```
+
+### Building Images
+```bash
+# Build server image with specific tag
+docker build -t dhruva-platform-server:latest-pg15 ./server
+
+# Build worker image
+docker build -t dhruva-platform-worker:latest ./server
+
+# Build all images using script
+./build-images.sh
+
+# Rebuild and restart services
+docker compose -f docker-compose-app.yml build --no-cache
+docker compose -f docker-compose-app.yml up -d --force-recreate
+```
+
+### Service Health Checks
+```bash
+# Check all service health
+docker compose -f docker-compose-db.yml -f docker-compose-metering.yml \
+  -f docker-compose-monitoring.yml -f docker-compose-app.yml ps
+
+# Check specific service health
+docker inspect dhruva-platform-server --format='{{.State.Health.Status}}'
+docker inspect dhruva-platform-app-db --format='{{.State.Health.Status}}'
+docker inspect dhruva-platform-redis --format='{{.State.Health.Status}}'
+```
+
+## Logging and Debugging
+
+### Service-Specific Log Commands
+
+#### Application Services
+```bash
+# FastAPI Server logs
+docker logs dhruva-platform-server --tail 100 -f
+
+# Celery Worker logs
+docker logs dhruva-platform-worker --tail 100 -f
+
+# Flower (Celery monitoring) logs
+docker logs dhruva-platform-flower --tail 50 -f
+```
+
+#### Database Services
+```bash
+# MongoDB App Database logs
+docker logs dhruva-platform-app-db --tail 50 -f
+
+# MongoDB Log Database logs
+docker logs dhruva-platform-log-db --tail 50 -f
+
+# Redis logs
+docker logs dhruva-platform-redis --tail 50 -f
+
+# TimescaleDB logs
+docker logs dhruva-platform-timescaledb --tail 50 -f
+```
+
+#### Metering Services
+```bash
+# RabbitMQ logs
+docker logs dhruva-platform-rabbitmq --tail 50 -f
+
+# Celery Metering Worker logs
+docker logs celery-metering --tail 100 -f
+
+# Celery Monitoring Worker logs
+docker logs celery-monitoring --tail 100 -f
+
+# Celery Beat Scheduler logs
+docker logs celery_beat --tail 50 -f
+```
+
+#### Monitoring Services
+```bash
+# Prometheus logs
+docker logs dhruva-platform-prometheus --tail 50 -f
+
+# Grafana logs
+docker logs dhruva-platform-grafana --tail 50 -f
+
+# Pushgateway logs
+docker logs dhruva-platform-pushgateway --tail 50 -f
+```
+
+### Database Access Commands
+
+#### MongoDB Access
+```bash
+# Connect to App Database
+docker exec -it dhruva-platform-app-db mongosh \
+  --username dhruvaadmin --password dhruva123 --authenticationDatabase admin
+
+# Connect to Log Database
+docker exec -it dhruva-platform-log-db mongosh \
+  --username dhruvalogadmin --password dhruvalog123 --authenticationDatabase admin
+
+# Quick database queries
+docker exec -it dhruva-platform-app-db mongosh \
+  --username dhruvaadmin --password dhruva123 --authenticationDatabase admin \
+  --eval "use admin; db.model.countDocuments()"
+```
+
+#### Redis Access
+```bash
+# Connect to Redis
+docker exec -it dhruva-platform-redis redis-cli -a dhruva123
+
+# Check Redis info
+docker exec -it dhruva-platform-redis redis-cli -a dhruva123 info
+
+# Monitor Redis commands
+docker exec -it dhruva-platform-redis redis-cli -a dhruva123 monitor
+```
+
+#### TimescaleDB Access
+```bash
+# Connect to TimescaleDB
+docker exec -it dhruva-platform-timescaledb psql -U dhruva -d dhruva_metering
+
+# Check TimescaleDB tables
+docker exec -it dhruva-platform-timescaledb psql -U dhruva -d dhruva_metering -c "\dt"
+```
+
+### Service Status Verification
+
+#### Check Service Dependencies
+```bash
+# Verify all services are running
+docker compose -f docker-compose-db.yml -f docker-compose-metering.yml \
+  -f docker-compose-monitoring.yml -f docker-compose-app.yml ps --services --filter "status=running"
+
+# Check service resource usage
+docker stats dhruva-platform-server dhruva-platform-app-db dhruva-platform-redis
+
+# Check network connectivity
+docker network inspect dhruva-network
+```
+
+#### API Health Checks
+```bash
+# Check FastAPI server health
+curl -f http://localhost:8000/health || echo "Server not responding"
+
+# Check API with authentication
+curl -X GET "http://localhost:8000/services/details/list_models" \
+  -H "Authorization: resEY0jeJ5KqTFyV3xaLineuRMgBqvsSneEiUG_Ic4yJVVrPFSPGMlNM3ySVzznE" \
+  -H "x-auth-source: API_KEY"
+
+# Check Grafana
+curl -f http://localhost:3000/api/health || echo "Grafana not responding"
+
+# Check Prometheus
+curl -f http://localhost:9090/-/healthy || echo "Prometheus not responding"
+```
+
+## Monitoring and Metrics
+
+### Prometheus Configuration
+- **Scrape Interval**: 15s globally, 5s for critical services
+- **Targets**: Pushgateway on port 9091
+- **Jobs**: prometheus, prom-aggregation-gateway
+- **External Labels**: monitor: "codelab-monitor"
+
+### Grafana Dashboards
+Available dashboards in `/grafana/provisioning/dashboards/`:
+- `dhruva_general_requests.json`: General API request metrics
+- `dhruva_global.json`: Global platform metrics
+- `dhruva_inference_requests.json`: AI inference specific metrics
+- `docker_containers.json`: Container resource monitoring
+- `docker_host.json`: Host system monitoring
+- `monitor_services.json`: Service health monitoring
+
+### Celery Queue Monitoring
+```bash
+# Check Celery queue status via Flower
+curl http://localhost:5555/api/queues
+
+# Monitor specific queues
+# - data-log: Data logging tasks
+# - heartbeat: Service heartbeat tasks
+# - upload-feedback-dump: Feedback processing
+# - send-usage-email: Usage notification emails
+# - metrics-log: Metrics collection tasks
+```
+
+## Testing Guidelines
+
+### FastAPI Testing
+```python
+from fastapi.testclient import TestClient
+from server.main import app
+
+client = TestClient(app)
+
+def test_endpoint():
+    response = client.get("/services/details/list_models")
+    assert response.status_code == 200
+```
+
+### Bootstrap and Setup Scripts
+```bash
+# Bootstrap admin user and API keys
+cd tests && python bootstrap_admin.py
+
+# Create API keys programmatically
+cd scripts && python create_api_key.py
+
+# Create test users
+cd tests && python create_test_users.py
+```
+
+## Troubleshooting Patterns
+
+### Common Deployment Issues
+
+#### Service Startup Order Problems
+```bash
+# Problem: Services fail due to dependency not ready
+# Solution: Use ordered startup
+docker compose -f docker-compose-db.yml up -d --remove-orphans
+sleep 30  # Wait for databases to be ready
+docker compose -f docker-compose-metering.yml up -d --remove-orphans
+sleep 15  # Wait for RabbitMQ
+docker compose -f docker-compose-monitoring.yml up -d --remove-orphans
+docker compose -f docker-compose-app.yml up -d --remove-orphans
+```
+
+#### Database Connection Issues
+```bash
+# Check MongoDB connectivity
+docker exec dhruva-platform-server python -c "
+from pymongo import MongoClient
+try:
+    client = MongoClient('mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin')
+    print('MongoDB connection: OK')
+    print(f'Collections: {client.admin.list_collection_names()}')
+except Exception as e:
+    print(f'MongoDB connection failed: {e}')
+"
+
+# Check Redis connectivity
+docker exec dhruva-platform-server python -c "
+import redis
+try:
+    r = redis.Redis(host='dhruva-platform-redis', port=6379, password='dhruva123')
+    r.ping()
+    print('Redis connection: OK')
+except Exception as e:
+    print(f'Redis connection failed: {e}')
+"
+```
+
+#### API Authentication Issues
+```bash
+# Verify API key exists in database
+docker exec -it dhruva-platform-app-db mongosh \
+  --username dhruvaadmin --password dhruva123 --authenticationDatabase admin \
+  --eval "use admin; db.api_key.find({api_key: 'your_api_key_here'}).pretty()"
+
+# Test API key authentication
+curl -v -X GET "http://localhost:8000/services/details/list_models" \
+  -H "Authorization: your_api_key_here" \
+  -H "x-auth-source: API_KEY"
+```
+
+#### Memory and Resource Issues
+```bash
+# Check container resource usage
+docker stats --no-stream
+
+# Check disk usage
+docker system df
+
+# Clean up unused resources
+docker system prune -f
+
+# Check service logs for OOM errors
+docker logs dhruva-platform-server 2>&1 | grep -i "memory\|oom"
+```
+
+### Performance Debugging
+
+#### Slow API Responses
+```bash
+# Check database query performance
+docker exec -it dhruva-platform-app-db mongosh \
+  --username dhruvaadmin --password dhruva123 --authenticationDatabase admin \
+  --eval "use admin; db.setProfilingLevel(2); db.model.find().explain('executionStats')"
+
+# Monitor Redis cache hit rates
+docker exec -it dhruva-platform-redis redis-cli -a dhruva123 info stats | grep keyspace
+
+# Check Celery queue backlogs
+curl -s http://localhost:5555/api/queues | python -m json.tool
+```
+
+#### High CPU/Memory Usage
+```bash
+# Profile Python application
+docker exec dhruva-platform-server python -m cProfile -o profile.stats main.py
+
+# Monitor container resources in real-time
+docker stats dhruva-platform-server --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+# Check for memory leaks in logs
+docker logs dhruva-platform-server | grep -E "(memory|leak|gc)"
+```
+
+## Environment Configuration Management
+
+### Required Environment Variables
+```bash
+# Database Configuration
+MONGO_APP_DB_USERNAME=dhruvaadmin
+MONGO_APP_DB_PASSWORD=dhruva123
+MONGO_LOG_DB_USERNAME=dhruvalogadmin
+MONGO_LOG_DB_PASSWORD=dhruvalog123
+APP_DB_NAME=admin
+APP_DB_CONNECTION_STRING=mongodb://${MONGO_APP_DB_USERNAME}:${MONGO_APP_DB_PASSWORD}@dhruva-platform-app-db:27017/admin?authSource=admin
+
+# Redis Configuration
+REDIS_HOST=dhruva-platform-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=dhruva123
+
+# TimescaleDB Configuration
+TIMESCALE_USER=dhruva
+TIMESCALE_PASSWORD=dhruva123
+TIMESCALE_DATABASE_NAME=dhruva_metering
+TIMESCALE_PORT=5432
+
+# RabbitMQ Configuration
+RABBITMQ_DEFAULT_USER=admin
+RABBITMQ_DEFAULT_PASS=admin123
+RABBITMQ_DEFAULT_VHOST=dhruva_host
+
+# Monitoring Configuration
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=admin123
+
+# Authentication
+JWT_SECRET_KEY=your_jwt_secret_key_here
+```
+
+### Configuration Validation
+```bash
+# Validate .env file exists and has required variables
+if [ ! -f .env ]; then
+    echo "Error: .env file not found"
+    exit 1
+fi
+
+# Check required environment variables
+required_vars=(
+    "MONGO_APP_DB_USERNAME"
+    "MONGO_APP_DB_PASSWORD"
+    "REDIS_PASSWORD"
+    "TIMESCALE_USER"
+    "TIMESCALE_PASSWORD"
+    "RABBITMQ_DEFAULT_USER"
+    "RABBITMQ_DEFAULT_PASS"
+)
+
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        echo "Error: $var is not set"
+        exit 1
+    fi
+done
+```
+
+### Service URL Patterns
+```bash
+# Internal service URLs (within Docker network)
+APP_DB_URL="mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin"
+REDIS_URL="redis://:dhruva123@dhruva-platform-redis:6379"
+RABBITMQ_URL="amqp://admin:admin123@dhruva-platform-rabbitmq:5672/dhruva_host"
+TIMESCALE_URL="postgresql://dhruva:dhruva123@dhruva-platform-timescaledb:5432/dhruva_metering"
+
+# External access URLs (from host machine)
+API_BASE_URL="http://localhost:8000"
+GRAFANA_URL="http://localhost:3000"
+PROMETHEUS_URL="http://localhost:9090"
+FLOWER_URL="http://localhost:5555"
+MONGO_EXPRESS_URL="http://localhost:8081"
+RABBITMQ_MANAGEMENT_URL="http://localhost:15672"
+```
+
+## Common Patterns to Follow
+
+1. **Always use dependency injection** for repositories and services
+2. **Transform data** between database models and API responses
+3. **Handle exceptions** with specific error codes from Errors enum
+4. **Use type hints** extensively in Python code
+5. **Follow the modular structure** - don't mix concerns between layers
+6. **Use Pydantic models** for all request/response validation
+7. **Implement proper authentication** checks on all protected endpoints
+8. **Cache frequently accessed data** using Redis and CacheBaseModel
+
+## Specific Code Examples
+
+### Complete Router Implementation
+```python
+# server/module/services/router/example_router.py
+from typing import List
+from fastapi import APIRouter, Depends, status
+from auth.auth_provider import AuthProvider
+from auth.api_key_type_authorization_provider import ApiKeyTypeAuthorizationProvider
+from schema.auth.common import ApiKeyType
+from schema.services.response import ExampleResponse
+from ..repository import ExampleRepository
+from ..error import Errors
+from exception.base_error import BaseError
+from exception.client_error import ClientError
+
+router = APIRouter(
+    prefix="/example",
+    dependencies=[
+        Depends(AuthProvider),
+        Depends(ApiKeyTypeAuthorizationProvider(ApiKeyType.INFERENCE)),
+    ],
+    responses={"401": {"model": ClientErrorResponse}},
+)
+
+@router.get("/list", response_model=List[ExampleResponse])
+async def list_examples(repository: ExampleRepository = Depends(ExampleRepository)):
+    try:
+        items = repository.find_all()
+        # Transform complex objects to simple responses
+        return [transform_to_response(item) for item in items]
+    except Exception:
+        raise BaseError(Errors.DHRUVA106.value, traceback.format_exc())
+```
+
+### Frontend API Client Pattern
+```typescript
+// client/api/exampleAPI.ts
+import { dhruvaAPI, apiInstance } from "./apiConfig";
+
+interface ExampleList {
+  id: string;
+  name: string;
+  status: string;
+}
+
+const listExamples = async (): Promise<ExampleList[]> => {
+  const response = await apiInstance({
+    method: "GET",
+    url: `${dhruvaAPI.baseURL}/services/example/list`,
+  });
+  return response.data;
+};
+
+export { listExamples };
+```
+
+### Pydantic Model Patterns
+```python
+# server/module/services/model/example.py
+from typing import List, Optional
+from pydantic import BaseModel
+from db.MongoBaseModel import MongoBaseModel
+from cache.CacheBaseModel import CacheBaseModel, generate_cache_model
+
+class Example(MongoBaseModel):
+    exampleId: str
+    name: str
+    description: str
+    status: str
+    metadata: Optional[dict] = {}
+
+    class Config:
+        allow_population_by_field_name = True
+        orm_mode = True
+
+# Auto-generate cache model
+ExampleCache = create_model(
+    "ExampleCache",
+    __base__=CacheBaseModel,
+    **generate_cache_model(Example, primary_key_field="exampleId")
+)
+```
+
+### Error Code Management
+```python
+# server/module/services/error/errors.py
+class Errors(Enum):
+    DHRUVA117 = {"kind": "DHRUVA-117", "message": "Failed to process example"}
+    DHRUVA118 = {"kind": "DHRUVA-118", "message": "Invalid example format"}
+```
+
+## Environment & Configuration
+
+### Environment Variables Pattern
+```bash
+# .env file structure
+# Database Configuration
+MONGO_APP_DB_USERNAME=username
+MONGO_APP_DB_PASSWORD=password
+APP_DB_NAME=database_name
+APP_DB_CONNECTION_STRING=mongodb://${MONGO_APP_DB_USERNAME}:${MONGO_APP_DB_PASSWORD}@host:port/db
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=password
+
+# Authentication
+JWT_SECRET_KEY=secret_key
+```
+
+### Docker Compose Service Pattern
+```yaml
+# docker-compose-app.yml
+services:
+  server:
+    image: dhruva-platform-server:latest-pg15
+    container_name: dhruva-platform-server
+    env_file: .env
+    command: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      app_db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - dhruva-network
+```
+
+## AI Assistant Guidelines
+
+When generating code or providing operational guidance:
+
+### Development Guidelines
+1. **Respect the existing architecture** - use the established patterns
+2. **Follow the directory structure** - place files in appropriate modules
+3. **Use proper imports** - follow the existing import patterns
+4. **Include error handling** - always wrap operations in try-catch with appropriate errors
+5. **Add type hints** - use proper typing for all function parameters and returns
+6. **Consider data transformation** - complex DB objects need simplified API responses
+7. **Include authentication** - protected endpoints need proper auth dependencies
+8. **Follow naming conventions** - use established patterns for files, classes, and functions
+9. **Use dependency injection** - leverage FastAPI's Depends() for all services and repositories
+10. **Implement caching** - use Redis cache models for frequently accessed data
+11. **Handle async operations** - use async/await for database and external API calls
+12. **Validate input data** - use Pydantic models for request validation
+13. **Transform response data** - ensure API responses match the expected schema format
+14. **Include proper logging** - use the established logging patterns for debugging
+15. **Test thoroughly** - write tests that cover both success and error scenarios
+
+### Operational Guidelines
+16. **Use multi-file Docker Compose** - always reference all 4 YAML files in deployment commands
+17. **Follow service startup order** - databases → metering → monitoring → application
+18. **Include health checks** - verify service health before proceeding with operations
+19. **Provide logging commands** - include specific container log commands for debugging
+20. **Consider service dependencies** - understand the interconnections between services
+21. **Include troubleshooting steps** - provide diagnostic commands for common issues
+22. **Validate environment configuration** - ensure all required environment variables are set
+23. **Monitor resource usage** - include commands to check CPU, memory, and disk usage
+24. **Use proper service URLs** - distinguish between internal Docker network and external access URLs
+25. **Include backup and recovery** - consider data persistence and volume management
+
+### Debugging and Monitoring Guidelines
+26. **Check service logs first** - always start troubleshooting with container logs
+27. **Verify database connectivity** - test connections to MongoDB, Redis, and TimescaleDB
+28. **Monitor queue status** - check Celery queues and RabbitMQ for backlogs
+29. **Use health check endpoints** - verify API and monitoring service availability
+30. **Profile performance issues** - include commands for CPU and memory profiling
+31. **Check authentication flow** - verify API keys and JWT tokens are working correctly
+32. **Monitor metrics and dashboards** - reference Grafana dashboards for system health
+33. **Validate configuration** - ensure environment variables and service URLs are correct
+34. **Use proper cleanup commands** - include Docker system cleanup for resource management
+35. **Document service interactions** - explain how services communicate within the Docker network
+
+### Best Practices for AI Assistance
+- **Provide complete commands** - include full Docker Compose commands with all YAML files
+- **Include context** - explain why specific commands or patterns are recommended
+- **Offer alternatives** - provide multiple approaches for complex operations
+- **Reference actual files** - point to specific configuration files and scripts in the project
+- **Consider scalability** - suggest patterns that work in both development and production
+- **Include validation steps** - provide commands to verify that operations completed successfully

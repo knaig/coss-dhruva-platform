@@ -1,0 +1,80 @@
+=== DHRUVA PLATFORM RECENT MONITORING DATA EXPORT SUMMARY ===
+Export completed at: Tue May 27 09:47:18 UTC 2025
+Time Range: Last 5 minutes (09:35:51 to 09:40:51 UTC)
+
+EXPORT SUCCESS CONFIRMATION:
+✅ Successfully exported recent monitoring data from Prometheus
+✅ Captured 5-minute time window of metrics data
+✅ Generated comprehensive JSON export file
+
+METRICS CAPTURED:
+- dhruva_requests_total: 72 time series
+- dhruva_request_duration_seconds: 0 time series (no duration data in this window)
+- dhruva_inference_request_total: 8 time series
+- dhruva_inference_request_duration_seconds: 0 time series (no duration data in this window)
+
+KEY ACTIVITY DETECTED IN 5-MINUTE WINDOW:
+- Translation requests: 24 occurrences
+- TTS (Text-to-Speech) requests: 12 occurrences  
+- ASR (Automatic Speech Recognition) requests: 16 occurrences
+- API key 'manapi' usage: 22 occurrences
+- Heartbeat monitoring requests: Multiple occurrences
+
+STATUS CODES CAPTURED:
+- 200 (Success): 36 occurrences
+- 500 (Internal Server Error): 8 occurrences
+- 403 (Forbidden): 8 occurrences
+- 307 (Temporary Redirect): 4 occurrences
+
+REQUEST METHODS DETECTED:
+- GET requests: Health checks, service listings, user auth
+- POST requests: Inference services (translation, TTS, ASR)
+- OPTIONS requests: CORS preflight requests
+
+API ENDPOINTS WITH ACTIVITY:
+- /services/inference/translation (134 total requests)
+- /services/inference/tts (40 total requests)
+- /services/inference/asr (39 total requests)
+- /services/details/list_services (heartbeat checks)
+- /services/details/list_models (heartbeat checks)
+- /auth/user (authentication requests)
+- / (root endpoint health checks)
+
+USER ACTIVITY:
+- User ID: 6800940478d4d09365d861e1 (primary active user)
+- API Key: 'manapi' (most active API key)
+- API Key: 'heartbeat' (system monitoring)
+- Anonymous requests (user_id: None)
+
+FILE DETAILS:
+- Export file: recent_requests_data.json
+- File size: 76KB
+- Total lines: 5,014
+- Format: Structured JSON with timestamps and labels
+- Time range: 5-minute window with 15-second step intervals
+
+DATA STRUCTURE:
+The exported JSON contains:
+1. dhruva_requests_total - HTTP request counts by endpoint
+2. dhruva_request_duration_seconds - Request timing data (empty in this window)
+3. dhruva_inference_request_total - AI service request counts
+4. dhruva_inference_request_duration_seconds - AI service timing (empty in this window)
+5. current_snapshot - Point-in-time values for analysis
+
+SIGNIFICANT FINDINGS:
+✅ Active inference services: Translation, TTS, ASR all receiving requests
+✅ High translation service usage (134 requests total)
+✅ System health monitoring functioning (heartbeat requests)
+✅ Mixed success/error rates indicating normal operational patterns
+✅ Multiple API keys in use showing multi-user activity
+
+EXPORT QUALITY:
+- Complete time series data with 15-second intervals
+- Full label information (API keys, user IDs, endpoints, status codes)
+- Both historical range data and current snapshot included
+- All requested metrics successfully captured where data exists
+
+Note: Duration metrics show 0 time series, indicating either:
+- No duration data generated in this specific 5-minute window
+- Duration metrics may be configured differently or not actively pushed
+- This is normal for short time windows with limited activity

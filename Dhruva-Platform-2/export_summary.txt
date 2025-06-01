@@ -1,0 +1,32 @@
+=== DETAILED ANALYSIS OF CAPTURED DATA ===
+Export completed at: Tue May 27 09:47:18 UTC 2025
+
+METRICS CAPTURED:
+- dhruva_requests_total: 72 time series
+- dhruva_request_duration_seconds: 0 time series
+- dhruva_inference_request_total: 8 time series
+- dhruva_inference_request_duration_seconds: 0 time series
+
+KEY ACTIVITY DETECTED:
+- Translation requests: 24 occurrences
+- TTS requests: 12 occurrences
+- ASR requests: 16 occurrences
+- API key 'manapi': 22 occurrences
+
+STATUS CODES CAPTURED:
+- 200 (Success): 36 occurrences
+- 500 (Error): 8 occurrences
+- 403 (Forbidden): 8 occurrences
+- 307 (Redirect): 4 occurrences
+
+FILE DETAILS:
+- File size: 76K
+- Total lines: 5014
+- Time range: Tue May 27 09:35:51 UTC 2025 to Tue May 27 09:40:51 UTC 2025
+
+TOP REQUEST COUNTS (from current snapshot):
+  "value": "134",
+  "value": "134",
+  "value": "40",
+  "value": "40",
+  "value": "39",
