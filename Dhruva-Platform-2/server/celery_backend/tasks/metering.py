@@ -110,9 +110,21 @@ def write_to_db(
     api_key_collection = db["api_key"]
     user_collection = db["user"]
 
-    api_key = api_key_collection.find_one({"_id": ObjectId(api_key_id)})
+    # Handle both ObjectId string and actual ObjectId
+    try:
+        if isinstance(api_key_id, str) and len(api_key_id) == 24:
+            # It's a string representation of ObjectId
+            api_key = api_key_collection.find_one({"_id": ObjectId(api_key_id)})
+        else:
+            # Try to find by the actual API key string
+            api_key = api_key_collection.find_one({"api_key": api_key_id})
+    except Exception as e:
+        print(f"Error looking up API key: {e}")
+        # Try alternative lookup by api_key field
+        api_key = api_key_collection.find_one({"api_key": api_key_id})
+
     if not api_key:
-        print("No document found for the API key")
+        print(f"No document found for the API key: {api_key_id}")
         return
 
     user = user_collection.find_one({"_id": api_key["user_id"]})
@@ -120,8 +132,9 @@ def write_to_db(
         print("Invalid user id for API key")
         return
 
+    # Write to TimescaleDB for time-series analytics
     with Session(engine) as session:
-        api_key = ApiKey(
+        api_key_record = ApiKey(
             api_key_id=api_key_id,
             api_key_name=api_key["name"],
             user_id=str(user["_id"]),
@@ -131,8 +144,23 @@ def write_to_db(
             usage=inference_units,
         )
 
-        session.add(api_key)
+        session.add(api_key_record)
         session.commit()
+
+    # Update MongoDB API key usage counters
+    try:
+        api_key_collection.update_one(
+            {"_id": ObjectId(api_key_id)},
+            {
+                "$inc": {
+                    "usage": inference_units,  # Increment total usage
+                    "hits": 1                  # Increment hit counter
+                }
+            }
+        )
+        print(f"Updated MongoDB usage: +{inference_units} units, +1 hit for API key {api_key_id}")
+    except Exception as e:
+        print(f"Error updating MongoDB usage counters: {e}")
 
 
 def meter_usage(

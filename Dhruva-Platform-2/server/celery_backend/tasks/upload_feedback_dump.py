@@ -1,5 +1,6 @@
 import csv
 import io
+import os
 from datetime import datetime
 
 from celery_backend.tasks.database import AppDatabase, LogDatastore
@@ -28,10 +29,11 @@ csv_headers = [
 
 @app.task(name="upload.feedback.dump")
 def upload_feedback_dump() -> None:
-    """Uploads feedback dumps to cloud storage"""
+    """Generates feedback dumps locally (cloud storage disabled for sandbox)"""
+    print("[SANDBOX MODE] Feedback dump task running - cloud storage disabled")
+
     file = io.StringIO()
     csv_writer = csv.writer(file)
-
     csv_writer.writerow(csv_headers)
 
     d = datetime.now()
@@ -55,17 +57,21 @@ def upload_feedback_dump() -> None:
         "feedbackTimeStamp": {"$gte": int(start_date), "$lt": int(end_date)},
     }
 
+    record_count = 0
     for doc in feedback_collection.find(query):
         feedback = Feedback(**doc)
         csv_writer.writerow(feedback.to_export_row())
+        record_count += 1
 
-    file.seek(0)
+    # Save to local file instead of cloud storage
+    local_file_name = f"feedback_dump_{start_year}{start_month:02d}_{d.strftime('%Y%m%d_%H%M%S')}.csv"
+    local_file_path = os.path.join(constants.LOCAL_DATA_DIR, local_file_name)
 
-    local_file_name = str(d.date()) + ".csv"
-    blob_client = feedback_store.get_blob_client(
-        container=constants.FEEDBACK_CONTAINER, blob=local_file_name
-    )
+    try:
+        with open(local_file_path, 'w', newline='', encoding='utf-8') as f:
+            f.write(file.getvalue())
+        print(f"[LOCAL STORAGE] Feedback dump saved locally: {local_file_path} ({record_count} records)")
+    except Exception as e:
+        print(f"[ERROR] Failed to save feedback dump locally: {e}")
 
-    print("\nUploading to Azure Storage as blob:\n\t" + local_file_name)
-
-    blob_client.upload_blob(file.read())
+    return
