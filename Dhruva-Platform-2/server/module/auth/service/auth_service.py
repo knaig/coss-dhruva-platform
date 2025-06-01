@@ -31,6 +31,7 @@ from schema.auth.request import (
     ModifyApiKeyParamsQuery,
     RefreshRequest,
     SignInRequest,
+    SignUpRequest,
     ULCADeleteApiKeyRequest,
     ULCASetApiKeyTrackingRequest,
 )
@@ -38,6 +39,7 @@ from schema.auth.response import (
     GetAllApiKeysDetailsResponse,
     GetServiceLevelApiKeysResponse,
     SignInResponse,
+    SignUpResponse,
     ULCAApiKeyDeleteResponse,
     ULCAApiKeyTrackingResponse,
 )
@@ -48,7 +50,9 @@ from schema.auth.response.ulca_api_key_tracking_response import (
 from ...services.model import ApiKeyMetering
 from ..error import Errors
 from ..model.api_key import ApiKey, ApiKeyCache
+from ..model.user import User
 from ..repository import ApiKeyRepository, SessionRepository, UserRepository
+from schema.auth.common import ApiKeyType, RoleType
 
 load_dotenv()
 
@@ -116,6 +120,67 @@ class AuthService:
         # create and return jwt
         return SignInResponse(
             id=str(user.id), email=user.email, token=token, role=user.role
+        )
+
+    def register_user(self, request: SignUpRequest):
+        # Check if user already exists
+        try:
+            existing_user = self.user_repository.find_one({"email": request.email})
+        except Exception:
+            raise BaseError(Errors.DHRUVA201.value, traceback.format_exc())
+
+        if existing_user:
+            raise ClientError(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="User with this email already exists",
+            )
+
+        # Hash password
+        ph = PasswordHasher()
+        hashed_password = ph.hash(request.password)
+
+        # Create new user with CONSUMER role
+        new_user = User(
+            name=request.name,
+            email=request.email,
+            password=hashed_password,
+            role=RoleType.CONSUMER,  # Automatically assign CONSUMER role
+        )
+
+        try:
+            user_id = self.user_repository.insert_one(new_user)
+        except Exception:
+            raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
+
+        # Get the created user
+        try:
+            created_user = self.user_repository.get_by_id(ObjectId(str(user_id)))
+        except Exception:
+            raise BaseError(Errors.DHRUVA206.value, traceback.format_exc())
+
+        # Auto-generate default API key
+        try:
+            api_request = CreateApiKeyRequest(
+                name="default",
+                type=ApiKeyType.INFERENCE,
+                regenerate=False,
+                target_user_id=str(created_user.id),
+                data_tracking=False,  # Set to false as default for new users
+            )
+
+            api_key = self.create_api_key(
+                request=api_request,
+                id=ObjectId(str(created_user.id)),
+            )
+        except Exception:
+            raise BaseError(Errors.DHRUVA207.value, traceback.format_exc())
+
+        return SignUpResponse(
+            id=str(created_user.id),
+            name=created_user.name,
+            email=created_user.email,
+            role=created_user.role,
+            api_key=api_key,
         )
 
     def get_refresh_token(self, request: RefreshRequest):

@@ -7,6 +7,7 @@ from .modify_api_key_params_query import ModifyApiKeyParamsQuery
 from .modify_user_query import ModifyUserQuery
 from .refresh_request import RefreshRequest
 from .signin_request import SignInRequest
+from .signup_request import SignUpRequest
 from .ulca_create_api_key_request import ULCACreateApiKeyRequest
 from .ulca_delete_api_key_request import ULCADeleteApiKeyRequest
 from .ulca_set_api_key_tracking_request import ULCASetApiKeyTrackingRequest

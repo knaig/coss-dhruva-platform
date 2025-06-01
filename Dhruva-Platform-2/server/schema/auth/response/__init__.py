@@ -9,6 +9,7 @@ from .get_api_key_response import GetApiKeyResponse
 from .get_user_response import GetUserResponse
 from .refresh_response import RefreshResponse
 from .signin_response import SignInResponse
+from .signup_response import SignUpResponse
 from .ulca_api_key_delete_response import ULCAApiKeyDeleteResponse
 from .ulca_api_key_generation_response import ULCAApiKeyGenerationResponse
 from .ulca_api_key_tracking_response import ULCAApiKeyTrackingResponse
