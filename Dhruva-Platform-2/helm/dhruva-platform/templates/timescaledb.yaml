@@ -1,0 +1,127 @@
+{{- if .Values.timescaledb.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-timescaledb
+  labels:
+    {{- include "dhruva-platform.timescaledb.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.timescaledb.service.type }}
+  ports:
+    - port: {{ .Values.timescaledb.service.port }}
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  selector:
+    {{- include "dhruva-platform.timescaledb.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-timescaledb
+  labels:
+    {{- include "dhruva-platform.timescaledb.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "dhruva-platform.fullname" . }}-timescaledb
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.timescaledb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dhruva-platform.timescaledb.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: timescaledb
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.timescaledb.image }}
+          imagePullPolicy: {{ .Values.timescaledb.image.pullPolicy }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.timescaledb.auth.database | quote }}
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dhruva-platform.fullname" . }}-secrets
+                  key: timescaledb-password
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U "postgres" -d "$(POSTGRES_DB)" -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - -e
+                - |
+                  exec pg_isready -U "postgres" -d "$(POSTGRES_DB)" -h 127.0.0.1 -p 5432
+                  [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.timescaledb.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgresql-data
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.timescaledb.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "dhruva-platform.timescaledb.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        {{- if .Values.timescaledb.persistence.storageClass }}
+        {{- if (eq "-" .Values.timescaledb.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.timescaledb.persistence.storageClass | quote }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.timescaledb.persistence.size | quote }}
+  {{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
+  {{- end }}
+{{- end }}

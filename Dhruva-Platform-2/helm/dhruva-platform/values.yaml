@@ -1,0 +1,486 @@
+# Default values for dhruva-platform.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Dhruva Server Configuration
+server:
+  enabled: true
+  replicaCount: 2
+  image:
+    registry: docker.io
+    repository: dhruva/server
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  env:
+    BACKEND_PORT: "8000"
+    BACKEND_WORKERS: "4"
+    ENV: "production"
+    VAD_DIR: "/root/.cache/torch/hub/snakers_silero_vad"
+    MIGRATION_ACTION: "migrate"
+    LOG_REQUEST_RESPONSE_DATA_FLAG: "true"
+
+# Dhruva Client Configuration
+client:
+  enabled: true
+  replicaCount: 2
+  image:
+    registry: docker.io
+    repository: dhruva/client
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Celery Workers Configuration
+celery:
+  enabled: true
+
+  # General worker
+  worker:
+    enabled: true
+    replicaCount: 3
+    image:
+      registry: docker.io
+      repository: dhruva/server
+      tag: "latest"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 1500m
+        memory: 3Gi
+      requests:
+        cpu: 750m
+        memory: 1.5Gi
+
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 15
+      targetCPUUtilizationPercentage: 75
+
+  # Metering worker
+  metering:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  # Monitoring worker
+  monitoring:
+    enabled: true
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+  # Beat scheduler
+  beat:
+    enabled: true
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+# Flower (Celery monitoring)
+flower:
+  enabled: true
+  replicaCount: 1
+  image:
+    registry: docker.io
+    repository: mher/flower
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5555
+    targetPort: 5555
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# TimescaleDB Configuration (for metrics)
+timescaledb:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: timescale/timescaledb
+    tag: "latest-pg15"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5432
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: ""
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  auth:
+    postgresPassword: "changeme"
+    database: "dhruva_metrics"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+  hosts:
+    - host: dhruva.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: client
+        - path: /api
+          pathType: Prefix
+          service: server
+        - path: /flower
+          pathType: Prefix
+          service: flower
+
+  tls:
+    - secretName: dhruva-tls
+      hosts:
+        - dhruva.example.com
+
+# Service Monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Network Policies
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 2000
+
+# Security Context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# External Dependencies Configuration
+# MongoDB Configuration (using Bitnami chart)
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaCount: 3
+  auth:
+    enabled: true
+    rootPassword: "changeme"
+    username: "dhruva"
+    password: "changeme"
+    database: "dhruva"
+
+  persistence:
+    enabled: true
+    size: 100Gi
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  metrics:
+    enabled: true
+
+# Redis Configuration (using Bitnami chart)
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: "changeme"
+
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+  metrics:
+    enabled: true
+
+# RabbitMQ Configuration (using Bitnami chart)
+rabbitmq:
+  enabled: true
+  auth:
+    username: "admin"
+    password: "changeme"
+    erlangCookie: "secretcookie"
+
+  persistence:
+    enabled: true
+    size: 20Gi
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  metrics:
+    enabled: true
+
+  extraConfiguration: |-
+    management.load_definitions = /app/definitions.json
+
+  extraSecrets:
+    load-definition:
+      definitions.json: |
+        {
+          "users": [
+            {
+              "name": "admin",
+              "password": "changeme",
+              "tags": "administrator"
+            }
+          ],
+          "vhosts": [
+            {
+              "name": "dhruva_host"
+            }
+          ],
+          "permissions": [
+            {
+              "user": "admin",
+              "vhost": "dhruva_host",
+              "configure": ".*",
+              "write": ".*",
+              "read": ".*"
+            }
+          ]
+        }
+
+# Prometheus Configuration (using community chart)
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+
+# Grafana Configuration (using Grafana chart)
+grafana:
+  enabled: true
+  adminPassword: "changeme"
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server:80
+        access: proxy
+        isDefault: true
+      - name: TimescaleDB
+        type: postgres
+        url: timescaledb:5432
+        database: dhruva_metrics
+        user: postgres
+        secureJsonData:
+          password: changeme
+
+# Configuration Management
+config:
+  # Environment-specific configurations
+  environment: "production"
+
+  # External service URLs
+  externalServices:
+    tritonServer: "http://triton-server:8000"
+    ulcaApi: "https://api.ulca.ai4bharat.org"
+
+  # Feature flags
+  features:
+    dataTracking: true
+    metering: true
+    monitoring: true
+    feedback: true
+
+  # Logging configuration
+  logging:
+    level: "INFO"
+    format: "json"
+
+  # Cache configuration
+  cache:
+    ttl: 3600
+    maxSize: 1000
+
+# Secrets (these should be overridden in production)
+secrets:
+  # Database passwords
+  mongodbPassword: "changeme"
+  redisPassword: "changeme"
+  timescaledbPassword: "changeme"
+  rabbitmqPassword: "changeme"
+
+  # API keys
+  heartbeatApiKey: "changeme"
+  jwtSecret: "changeme"
+
+  # External service credentials
+  azureStorageConnectionString: ""
+  emailCredentials: ""
+
+# RBAC Configuration
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Node affinity for high availability
+nodeAffinity:
+  enabled: false
+  requiredDuringSchedulingIgnoredDuringExecution: []
+  preferredDuringSchedulingIgnoredDuringExecution: []
+
+# Pod anti-affinity for high availability
+podAntiAffinity:
+  enabled: true
+  type: "soft" # soft or hard

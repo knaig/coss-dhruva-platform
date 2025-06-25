@@ -1,0 +1,245 @@
+{{- if and .Values.celery.enabled .Values.celery.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-celery-worker
+  labels:
+    {{- include "dhruva-platform.celery.worker.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.celery.worker.autoscaling.enabled }}
+  replicas: {{ .Values.celery.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.celery.worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "dhruva-platform.celery.worker.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: celery-worker
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.celery.worker.image }}
+          imagePullPolicy: {{ .Values.celery.worker.image.pullPolicy }}
+          env:
+            {{- include "dhruva-platform.commonEnv" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dhruva-platform.fullname" . }}-config
+          command:
+            - "celery"
+            - "-A"
+            - "celery_backend.celery_app"
+            - "worker"
+            - "--loglevel=info"
+          resources:
+            {{- toYaml .Values.celery.worker.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+---
+{{- if and .Values.celery.enabled .Values.celery.metering.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-celery-metering
+  labels:
+    {{- include "dhruva-platform.celery.metering.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.celery.metering.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.celery.metering.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "dhruva-platform.celery.metering.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: celery-metering
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.celery.worker.image }}
+          imagePullPolicy: {{ .Values.celery.worker.image.pullPolicy }}
+          env:
+            {{- include "dhruva-platform.commonEnv" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dhruva-platform.fullname" . }}-config
+          command:
+            - "celery"
+            - "-A"
+            - "celery_backend.celery_app"
+            - "worker"
+            - "-Q"
+            - "data-log,heartbeat,upload-feedback-dump,send-usage-email"
+            - "--loglevel=info"
+          resources:
+            {{- toYaml .Values.celery.metering.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+---
+{{- if and .Values.celery.enabled .Values.celery.monitoring.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-celery-monitoring
+  labels:
+    {{- include "dhruva-platform.celery.monitoring.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.celery.monitoring.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.celery.monitoring.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "dhruva-platform.celery.monitoring.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: celery-monitoring
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.celery.worker.image }}
+          imagePullPolicy: {{ .Values.celery.worker.image.pullPolicy }}
+          env:
+            {{- include "dhruva-platform.commonEnv" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dhruva-platform.fullname" . }}-config
+          command:
+            - "celery"
+            - "-A"
+            - "celery_backend.celery_app"
+            - "worker"
+            - "-Q"
+            - "monitoring"
+            - "--loglevel=info"
+          resources:
+            {{- toYaml .Values.celery.monitoring.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+---
+{{- if and .Values.celery.enabled .Values.celery.beat.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-celery-beat
+  labels:
+    {{- include "dhruva-platform.celery.beat.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.celery.beat.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.celery.beat.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "dhruva-platform.celery.beat.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: celery-beat
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.celery.worker.image }}
+          imagePullPolicy: {{ .Values.celery.worker.image.pullPolicy }}
+          env:
+            {{- include "dhruva-platform.commonEnv" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dhruva-platform.fullname" . }}-config
+          command:
+            - "celery"
+            - "-A"
+            - "celery_backend.celery_app"
+            - "beat"
+            - "--loglevel=info"
+          resources:
+            {{- toYaml .Values.celery.beat.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

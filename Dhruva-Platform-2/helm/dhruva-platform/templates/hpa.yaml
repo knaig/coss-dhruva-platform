@@ -1,0 +1,82 @@
+{{- if .Values.server.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-server
+  labels:
+    {{- include "dhruva-platform.server.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dhruva-platform.fullname" . }}-server
+  minReplicas: {{ .Values.server.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.server.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.server.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.server.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.server.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.server.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+---
+{{- if .Values.client.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-client
+  labels:
+    {{- include "dhruva-platform.client.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dhruva-platform.fullname" . }}-client
+  minReplicas: {{ .Values.client.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.client.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.client.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.client.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+---
+{{- if and .Values.celery.enabled .Values.celery.worker.enabled .Values.celery.worker.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-celery-worker
+  labels:
+    {{- include "dhruva-platform.celery.worker.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dhruva-platform.fullname" . }}-celery-worker
+  minReplicas: {{ .Values.celery.worker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.celery.worker.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.celery.worker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.celery.worker.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-config
+  labels:
+    {{- include "dhruva-platform.labels" . | nindent 4 }}
+data:
+  # Server configuration
+  FRONTEND_PORT: {{ .Values.client.service.port | quote }}
+  BACKEND_PORT: {{ .Values.server.service.port | quote }}
+  BACKEND_WORKERS: {{ .Values.server.env.BACKEND_WORKERS | quote }}
+  ENV: {{ .Values.config.environment | quote }}
+  VAD_DIR: {{ .Values.server.env.VAD_DIR | quote }}
+  MIGRATION_ACTION: {{ .Values.server.env.MIGRATION_ACTION | quote }}
+  LOG_REQUEST_RESPONSE_DATA_FLAG: {{ .Values.server.env.LOG_REQUEST_RESPONSE_DATA_FLAG | quote }}
+
+  # External service URLs
+  {{- if .Values.config.externalServices.tritonServer }}
+  TRITON_SERVER_URL: {{ .Values.config.externalServices.tritonServer | quote }}
+  {{- end }}
+  {{- if .Values.config.externalServices.ulcaApi }}
+  ULCA_API_URL: {{ .Values.config.externalServices.ulcaApi | quote }}
+  {{- end }}
+
+  # Feature flags
+  DATA_TRACKING_ENABLED: {{ .Values.config.features.dataTracking | quote }}
+  METERING_ENABLED: {{ .Values.config.features.metering | quote }}
+  MONITORING_ENABLED: {{ .Values.config.features.monitoring | quote }}
+  FEEDBACK_ENABLED: {{ .Values.config.features.feedback | quote }}
+
+  # Logging configuration
+  LOG_LEVEL: {{ .Values.config.logging.level | quote }}
+  LOG_FORMAT: {{ .Values.config.logging.format | quote }}
+
+  # Cache configuration
+  CACHE_TTL: {{ .Values.config.cache.ttl | quote }}
+  CACHE_MAX_SIZE: {{ .Values.config.cache.maxSize | quote }}
+
+  # Celery configuration
+  CELERY_FLOWER_ADDRESS: "0.0.0.0"
+  CELERY_FLOWER_PORT: {{ .Values.flower.service.port | quote }}
+  FLOWER_LOGGING_LEVEL: "INFO"
+
+  # RabbitMQ configuration
+  RABBITMQ_DEFAULT_USER: "admin"
+  RABBITMQ_DEFAULT_VHOST: "dhruva_host"

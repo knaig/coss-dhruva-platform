@@ -1,0 +1,566 @@
+# Production values for dhruva-platform.
+# This file contains production-ready configurations with high availability and security
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "fast-ssd"  # Use high-performance storage class
+
+# Dhruva Server Configuration - Production Scale
+server:
+  enabled: true
+  replicaCount: 5  # Higher replica count for production
+  image:
+    registry: docker.io
+    repository: dhruva/server
+    tag: "v1.0.0"  # Use specific version tag
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8000"
+      prometheus.io/path: "/metrics"
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+  nodeSelector:
+    node-type: "compute-optimized"
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - server
+          topologyKey: kubernetes.io/hostname
+
+  env:
+    BACKEND_PORT: "8000"
+    BACKEND_WORKERS: "8"  # More workers for production
+    ENV: "production"
+    VAD_DIR: "/root/.cache/torch/hub/snakers_silero_vad"
+    MIGRATION_ACTION: "migrate"
+    LOG_REQUEST_RESPONSE_DATA_FLAG: "true"
+
+# Dhruva Client Configuration - Production Scale
+client:
+  enabled: true
+  replicaCount: 4
+  image:
+    registry: docker.io
+    repository: dhruva/client
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 4
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 60
+
+  nodeSelector:
+    node-type: "compute-optimized"
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - client
+          topologyKey: kubernetes.io/hostname
+
+# Celery Workers Configuration - Production Scale
+celery:
+  enabled: true
+
+  # General worker - High scale
+  worker:
+    enabled: true
+    replicaCount: 10  # More workers for production load
+    image:
+      registry: docker.io
+      repository: dhruva/server
+      tag: "v1.0.0"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 3000m
+        memory: 6Gi
+      requests:
+        cpu: 1500m
+        memory: 3Gi
+
+    autoscaling:
+      enabled: true
+      minReplicas: 10
+      maxReplicas: 50  # High scale for AI workloads
+      targetCPUUtilizationPercentage: 70
+
+  # Metering worker
+  metering:
+    enabled: true
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+  # Monitoring worker
+  monitoring:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  # Beat scheduler
+  beat:
+    enabled: true
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+# Flower (Celery monitoring)
+flower:
+  enabled: true
+  replicaCount: 2  # HA for monitoring
+  image:
+    registry: docker.io
+    repository: mher/flower
+    tag: "1.2.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5555
+    targetPort: 5555
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# TimescaleDB Configuration - Production
+timescaledb:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: timescale/timescaledb
+    tag: "2.11.2-pg15"  # Specific version for production
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5432
+
+  persistence:
+    enabled: true
+    size: 200Gi  # Larger storage for production
+    storageClass: "fast-ssd"
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+
+  auth:
+    postgresPassword: "CHANGE_ME_IN_PRODUCTION"  # Must be changed
+    database: "dhruva_metrics"
+
+# Ingress Configuration - Production
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+
+  hosts:
+    - host: dhruva.yourdomain.com  # Change to your domain
+      paths:
+        - path: /
+          pathType: Prefix
+          service: client
+        - path: /api
+          pathType: Prefix
+          service: server
+        - path: /flower
+          pathType: Prefix
+          service: flower
+
+  tls:
+    - secretName: dhruva-tls
+      hosts:
+        - dhruva.yourdomain.com
+
+# Service Monitor for Prometheus - Production
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 15s  # More frequent scraping
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus
+
+# Network Policies - Production Security
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8000
+      - protocol: TCP
+        port: 3000
+  egress:
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+
+# Pod Security Context - Production
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Security Context - Production
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# External Dependencies Configuration - Production Scale
+# MongoDB Configuration (using Bitnami chart)
+mongodb:
+  enabled: true
+  architecture: replicaset
+  replicaCount: 3  # HA setup
+  auth:
+    enabled: true
+    rootPassword: "CHANGE_ME_IN_PRODUCTION"
+    username: "dhruva"
+    password: "CHANGE_ME_IN_PRODUCTION"
+    database: "dhruva"
+
+  persistence:
+    enabled: true
+    size: 500Gi  # Large storage for production
+    storageClass: "fast-ssd"
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+
+  metrics:
+    enabled: true
+
+  arbiter:
+    enabled: true
+
+# Redis Configuration (using Bitnami chart) - Production
+redis:
+  enabled: true
+  architecture: replication  # Master-slave for HA
+  auth:
+    enabled: true
+    password: "CHANGE_ME_IN_PRODUCTION"
+
+  master:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "fast-ssd"
+
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "fast-ssd"
+
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+  metrics:
+    enabled: true
+
+# RabbitMQ Configuration (using Bitnami chart) - Production
+rabbitmq:
+  enabled: true
+  replicaCount: 3  # HA cluster
+  auth:
+    username: "admin"
+    password: "CHANGE_ME_IN_PRODUCTION"
+    erlangCookie: "CHANGE_ME_IN_PRODUCTION"
+
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: "fast-ssd"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  metrics:
+    enabled: true
+
+  clustering:
+    enabled: true
+
+  loadDefinition:
+    enabled: true
+    secretName: rabbitmq-load-definition
+
+# Prometheus Configuration (using community chart) - Production
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 200Gi
+      storageClass: "fast-ssd"
+
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+
+    retention: "30d"  # Longer retention for production
+
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+      storageClass: "fast-ssd"
+
+# Grafana Configuration (using Grafana chart) - Production
+grafana:
+  enabled: true
+  adminPassword: "CHANGE_ME_IN_PRODUCTION"
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: "fast-ssd"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  replicas: 2  # HA for Grafana
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server:80
+        access: proxy
+        isDefault: true
+      - name: TimescaleDB
+        type: postgres
+        url: timescaledb:5432
+        database: dhruva_metrics
+        user: postgres
+        secureJsonData:
+          password: CHANGE_ME_IN_PRODUCTION
+
+# Configuration Management - Production
+config:
+  environment: "production"
+
+  externalServices:
+    tritonServer: "http://triton-server:8000"
+    ulcaApi: "https://api.ulca.ai4bharat.org"
+
+  features:
+    dataTracking: true
+    metering: true
+    monitoring: true
+    feedback: true
+
+  logging:
+    level: "INFO"
+    format: "json"
+
+  cache:
+    ttl: 7200  # Longer TTL for production
+    maxSize: 10000
+
+# Secrets - MUST BE CHANGED FOR PRODUCTION
+secrets:
+  mongodbPassword: "CHANGE_ME_IN_PRODUCTION"
+  redisPassword: "CHANGE_ME_IN_PRODUCTION"
+  timescaledbPassword: "CHANGE_ME_IN_PRODUCTION"
+  rabbitmqPassword: "CHANGE_ME_IN_PRODUCTION"
+  heartbeatApiKey: "CHANGE_ME_IN_PRODUCTION"
+  jwtSecret: "CHANGE_ME_IN_PRODUCTION"
+  azureStorageConnectionString: ""
+  emailCredentials: ""
+
+# RBAC Configuration - Production
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Add IAM role for AWS EKS if needed
+  name: ""
+
+# Pod Disruption Budget - Production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Ensure minimum availability
+
+# Node affinity for high availability - Production
+nodeAffinity:
+  enabled: true
+  requiredDuringSchedulingIgnoredDuringExecution:
+    - matchExpressions:
+      - key: node-type
+        operator: In
+        values:
+        - compute-optimized
+  preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: zone
+          operator: In
+          values:
+          - us-west-2a
+          - us-west-2b
+          - us-west-2c
+
+# Pod anti-affinity for high availability - Production
+podAntiAffinity:
+  enabled: true
+  type: "hard"  # Hard anti-affinity for production
+
+# Resource quotas and limits - Production
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "100"
+    requests.memory: "200Gi"
+    limits.cpu: "200"
+    limits.memory: "400Gi"
+    persistentvolumeclaims: "50"
+
+# Backup configuration - Production
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storageClass: "standard"

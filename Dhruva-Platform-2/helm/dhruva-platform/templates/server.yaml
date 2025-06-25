@@ -1,0 +1,109 @@
+{{- if .Values.server.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-server
+  labels:
+    {{- include "dhruva-platform.server.labels" . | nindent 4 }}
+  {{- with .Values.server.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.server.service.type }}
+  ports:
+    - port: {{ .Values.server.service.port }}
+      targetPort: {{ .Values.server.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dhruva-platform.server.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dhruva-platform.fullname" . }}-server
+  labels:
+    {{- include "dhruva-platform.server.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.server.autoscaling.enabled }}
+  replicas: {{ .Values.server.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "dhruva-platform.server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "dhruva-platform.server.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dhruva-platform.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: server
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "dhruva-platform.image" .Values.server.image }}
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- include "dhruva-platform.commonEnv" . | nindent 12 }}
+            {{- range $key, $value := .Values.server.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dhruva-platform.fullname" . }}-config
+          command:
+            - "uvicorn"
+            - "main:app"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ .Values.server.service.targetPort }}"
+            - "--workers"
+            - "{{ .Values.server.env.BACKEND_WORKERS }}"
+            - "--proxy-headers"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
