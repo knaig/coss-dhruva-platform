@@ -8,7 +8,7 @@ import {
   HStack,
   Spacer,
 } from "@chakra-ui/react";
-import Image from "next/image";
+import BaseImage from "../Common/BaseImage";
 import { IoConstructOutline, IoGridOutline } from "react-icons/io5";
 import { MdOutlineAdminPanelSettings } from "react-icons/md";
 import React, { useState, useEffect } from "react";
@@ -16,6 +16,9 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { RiFlowChart } from "react-icons/ri";
 import { BiChart } from "react-icons/bi";
+import { VscBeaker } from "react-icons/vsc";
+import { pathStartsWith } from "../../utils/basePath";
+import RoleBasedComponent from "../Auth/RoleBasedComponent";
 
 const SidebarMobile: React.FC = () => {
   const bg = useColorModeValue("light.100", "dark.100");
@@ -23,23 +26,13 @@ const SidebarMobile: React.FC = () => {
   const [number, setNumber] = useState<Number>(0);
   const [userRole, setUserRole] = useState<String>("CONSUMER");
   const router = useRouter();
+  
   useEffect(() => {
     setUserRole(localStorage.getItem("user_role"));
+    // router.pathname already excludes basePath in Next.js
     switch (router.pathname.split("/")[1]) {
-      case "services":
+      case "testing-ground":
         setNumber(1);
-        break;
-      case "admin":
-        setNumber(2);
-        break;
-      case "monitoring":
-        setNumber(4);
-        break;
-      case "models":
-        setNumber(3);
-        break;
-      case "pipeline":
-        setNumber(5);
         break;
       default:
         setNumber(0);
@@ -62,7 +55,7 @@ const SidebarMobile: React.FC = () => {
       <Box borderRadius="xl">
         <Box h="4rem" justifyContent="flex-start">
           <HStack>
-            <Image alt="logo" src="/AI4Bharat.svg" height="50" width="50" />
+            <BaseImage alt="logo" src="/AI4Bharat.svg" height="50" width="50" />
             <Spacer />
             <Text marginLeft={4} fontSize={"x-large"} fontWeight={"bold"}>
               Dhruva
@@ -79,46 +72,48 @@ const SidebarMobile: React.FC = () => {
           width={"100%"}
           marginLeft={"0"}
         >
-          {/* <Box>
-              <Link href={"/home"}>
-                <Button
-                  mb="2"
-                  ml={isOpen ? 0 : 0}
-                  h={10}
-                  variant={number === 0 ? "solid" : "ghost"}
-                  background={number === 0 ? "orange.500" : "transperent"}
-                  color={number === 0 ? "white" : "black"}
-                  size="l"
-                  boxShadow={number === 0 ? "xl" : "none"}
-                  w={"100%"}
-                  justifyContent="flex-start"
-                >
-                  <Box>
-                    <BiHomeCircle style={{ marginLeft: 12 }} size={25} />
-                  </Box>
-                    <Text marginLeft={4} fontWeight={"normal"}>
-                      Home
-                    </Text>
-                </Button>
-              </Link>
-            </Box> */}
-          <Box>
+          <Box w="100%">
+            <Link href={"/testing-ground"}>
+              <Button
+                mb="2"
+                ml={isOpen ? 0 : 0}
+                h={10}
+                w="100%"
+                variant={pathStartsWith(router.pathname, "/testing-ground") ? "solid" : "ghost"}
+                background={pathStartsWith(router.pathname, "/testing-ground") ? "orange.500" : "transperent"}
+                color={pathStartsWith(router.pathname, "/testing-ground") ? "white" : "black"}
+                justifyContent="flex-start"
+                size="l"
+                boxShadow={pathStartsWith(router.pathname, "/testing-ground") ? "xl" : "none"}
+                transition="width 0.2s"
+              >
+                <Box>
+                  <VscBeaker style={{ marginLeft: 12 }} size={25} />
+                </Box>
+                <Text marginLeft={4} fontWeight={"normal"}>
+                  Testing Ground
+                </Text>
+              </Button>
+            </Link>
+          </Box>
+
+          <Box w="100%">
             <Link href={"/services"}>
               <Button
                 mb="2"
                 ml={isOpen ? 0 : 0}
                 h={10}
                 w="100%"
-                variant={number === 1 ? "solid" : "ghost"}
-                background={number === 1 ? "orange.500" : "transperent"}
-                color={number === 1 ? "white" : "black"}
+                variant={pathStartsWith(router.pathname, "/services") ? "solid" : "ghost"}
+                background={pathStartsWith(router.pathname, "/services") ? "orange.500" : "transperent"}
+                color={pathStartsWith(router.pathname, "/services") ? "white" : "black"}
                 justifyContent="flex-start"
                 size="l"
-                boxShadow={number === 1 ? "xl" : "none"}
+                boxShadow={pathStartsWith(router.pathname, "/services") ? "xl" : "none"}
                 transition="width 0.2s"
               >
                 <Box>
-                  <IoGridOutline style={{ marginLeft: 12 }} size={25} />
+                  <IoConstructOutline style={{ marginLeft: 12 }} size={25} />
                 </Box>
                 <Text marginLeft={4} fontWeight={"normal"}>
                   Services
@@ -134,16 +129,16 @@ const SidebarMobile: React.FC = () => {
                 ml={isOpen ? 0 : 0}
                 h={10}
                 w="100%"
-                variant={number === 3 ? "solid" : "ghost"}
-                background={number === 3 ? "orange.500" : "transperent"}
-                color={number === 3 ? "white" : "black"}
+                variant={pathStartsWith(router.pathname, "/models") ? "solid" : "ghost"}
+                background={pathStartsWith(router.pathname, "/models") ? "orange.500" : "transperent"}
+                color={pathStartsWith(router.pathname, "/models") ? "white" : "black"}
                 justifyContent="flex-start"
                 size="l"
-                boxShadow={number === 3 ? "xl" : "none"}
+                boxShadow={pathStartsWith(router.pathname, "/models") ? "xl" : "none"}
                 transition="width 0.2s"
               >
                 <Box>
-                  <IoConstructOutline style={{ marginLeft: 12 }} size={25} />
+                  <IoGridOutline style={{ marginLeft: 12 }} size={25} />
                 </Box>
                 <Text marginLeft={4} fontWeight={"normal"}>
                   Models
@@ -151,6 +146,7 @@ const SidebarMobile: React.FC = () => {
               </Button>
             </Link>
           </Box>
+
           <Box w="100%">
             <Link href={"/pipeline"}>
               <Button
@@ -158,16 +154,16 @@ const SidebarMobile: React.FC = () => {
                 ml={isOpen ? 0 : 0}
                 h={10}
                 w="100%"
-                variant={number === 5 ? "solid" : "ghost"}
-                background={number === 5 ? "orange.500" : "transperent"}
-                color={number === 5 ? "white" : "black"}
+                variant={pathStartsWith(router.pathname, "/pipeline") ? "solid" : "ghost"}
+                background={pathStartsWith(router.pathname, "/pipeline") ? "orange.500" : "transperent"}
+                color={pathStartsWith(router.pathname, "/pipeline") ? "white" : "black"}
                 justifyContent="flex-start"
                 size="l"
-                boxShadow={number === 5 ? "xl" : "none"}
+                boxShadow={pathStartsWith(router.pathname, "/pipeline") ? "xl" : "none"}
                 transition="width 0.2s"
               >
                 <Box>
-                  <IoConstructOutline style={{ marginLeft: 12 }} size={25} />
+                  <RiFlowChart style={{ marginLeft: 12 }} size={25} />
                 </Box>
                 <Text marginLeft={4} fontWeight={"normal"}>
                   Pipeline
@@ -175,106 +171,58 @@ const SidebarMobile: React.FC = () => {
               </Button>
             </Link>
           </Box>
-          <Box>
+
+          <Box w="100%">
             <Link href={"/monitoring"}>
               <Button
                 mb="2"
                 ml={isOpen ? 0 : 0}
                 h={10}
-                variant={number === 4 ? "solid" : "ghost"}
-                background={number === 4 ? "orange.500" : "transperent"}
-                color={number === 4 ? "white" : "black"}
-                size="l"
-                boxShadow={number === 4 ? "xl" : "none"}
-                w={"100%"}
+                w="100%"
+                variant={pathStartsWith(router.pathname, "/monitoring") ? "solid" : "ghost"}
+                background={pathStartsWith(router.pathname, "/monitoring") ? "orange.500" : "transperent"}
+                color={pathStartsWith(router.pathname, "/monitoring") ? "white" : "black"}
                 justifyContent="flex-start"
+                size="l"
+                boxShadow={pathStartsWith(router.pathname, "/monitoring") ? "xl" : "none"}
+                transition="width 0.2s"
               >
                 <Box>
                   <BiChart style={{ marginLeft: 12 }} size={25} />
                 </Box>
-                  <Text marginLeft={4} fontWeight={"normal"}>
-                    Monitoring
-                  </Text>
-              </Button>
-            </Link>
-          </Box>
-          {/* <Box>
-            <Link href={"/billing"}>
-              <Button
-                mb="2"
-                ml={isOpen ? 0 : 0}
-                h={10}
-                w="100%"
-                variant={number === 4 ? "solid" : "ghost"}
-                background={number === 4 ? "orange.500" : "transperent"}
-                color={number === 4 ? "white" : "black"}
-                justifyContent="flex-start"
-                size="l"
-                boxShadow={number === 4 ? "xl" : "none"}
-                transition="width 0.2s"
-              >
-                <Box>
-                  <AiOutlineDollarCircle style={{ marginLeft: 12 }} size={25} />
-                </Box>
                 <Text marginLeft={4} fontWeight={"normal"}>
-                  Billing
+                  Monitoring
                 </Text>
               </Button>
             </Link>
-          </Box> */}
-
-          <Box>
-            <Link href="/admin">
-              <Button
-                mb="2"
-                ml={isOpen ? 0 : 0}
-                h={10}
-                w="100%"
-                variant={number === 2 ? "solid" : "ghost"}
-                background={number === 2 ? "orange.500" : "transperent"}
-                color={number === 2 ? "white" : "black"}
-                justifyContent="flex-start"
-                size="l"
-                boxShadow={number === 2 ? "xl" : "none"}
-                transition="width 0.2s"
-              >
-                <Box>
-                  <MdOutlineAdminPanelSettings
-                    style={{ marginLeft: 12, marginRight: 12 }}
-                    size={25}
-                  />
-                </Box>
-                <Text fontWeight={"normal"}> Admin</Text>
-              </Button>
-            </Link>
           </Box>
 
-          {/* 
-          <Box position={"absolute"} bottom="10">
-            <Box>
-              <Link href="/profile">
+          <RoleBasedComponent allowedRoles={["ADMIN"]}>
+            <Box w="100%">
+              <Link href={"/admin"}>
                 <Button
                   mb="2"
                   ml={isOpen ? 0 : 0}
                   h={10}
-                  w={"100%"}
-                  variant={number === 2 ? "solid" : "ghost"}
-                  colorScheme={number === 2 ? "primary" : "transperent"}
+                  w="100%"
+                  variant={pathStartsWith(router.pathname, "/admin") ? "solid" : "ghost"}
+                  background={pathStartsWith(router.pathname, "/admin") ? "orange.500" : "transperent"}
+                  color={pathStartsWith(router.pathname, "/admin") ? "white" : "black"}
                   justifyContent="flex-start"
                   size="l"
-                  boxShadow={number === 2 ? "xl" : "none"}
+                  boxShadow={pathStartsWith(router.pathname, "/admin") ? "xl" : "none"}
                   transition="width 0.2s"
                 >
                   <Box>
-                    <Avatar style={{ marginLeft: 12 }} size="sm" />
+                    <MdOutlineAdminPanelSettings style={{ marginLeft: 12 }} size={25} />
                   </Box>
                   <Text marginLeft={4} fontWeight={"normal"}>
-                    Profile
+                    Admin
                   </Text>
                 </Button>
               </Link>
             </Box>
-          </Box> */}
+          </RoleBasedComponent>
         </SimpleGrid>
       </Box>
     </Box>

@@ -50,6 +50,11 @@ interface Benchmark {
   ];
 }
 
+interface BenchmarkValue {
+  value: string;
+  language: string;
+}
+
 export default function ViewModel({ ...props }) {
   const router = useRouter();
   const { data: modelInfo, isLoading } = useQuery(
@@ -63,7 +68,7 @@ export default function ViewModel({ ...props }) {
   const [benchmarkMetric, setBenchmarkMetric] = useState<string>("");
   const [benchmarkDatasets, setBenchmarkDatasets] = useState<string[]>([]);
   const [benchmarkDataset, setBenchmarkDataset] = useState<string>("");
-  const [benchmarkValues, setBenchmarkValues] = useState<Benchmark[]>([]);
+  const [benchmarkValues, setBenchmarkValues] = useState<BenchmarkValue[]>([]);
   const [tabIndex, setTabIndex] = useState<number>(0);
 
   useEffect(() => {
@@ -235,9 +240,9 @@ export default function ViewModel({ ...props }) {
                       spacingX="40px"
                       spacingY="20px"
                     >
-                      {benchmarkValues.map((benchmark, idx) => {
+                      {benchmarkValues.map((benchmark) => {
                         return (
-                          <Stat key={idx}>
+                          <Stat key={benchmark.language}>
                             <StatLabel>
                               {benchmarkMetric.toUpperCase()} Score
                             </StatLabel>
@@ -366,7 +371,7 @@ export default function ViewModel({ ...props }) {
                     >
                       {benchmarkValues.map((benchmark) => {
                         return (
-                          <Stat>
+                          <Stat key={benchmark.language}>
                             <StatLabel>
                               {benchmarkMetric.toUpperCase()} Score
                             </StatLabel>

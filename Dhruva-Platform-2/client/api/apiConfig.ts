@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const dhruvaRootURL: string = "http://13.203.149.17:8000";
+// Use HTTPS with reverse proxy configuration
+const dhruvaRootURL: string = "https://13.203.149.17";
 
 const dhruvaAPI: { [key: string]: string } = {
   listServices: `${dhruvaRootURL}/services/details/list_services`,
@@ -29,7 +30,11 @@ function onTokenRefreshed(token: string) {
 }
 
 apiInstance.interceptors.request.use((config: any) => {
-  if (window.location.pathname !== "/") {
+  // Handle base path for current page tracking
+  const currentPath = window.location.pathname;
+  // Don't save login page or root paths
+  const isLoginPage = currentPath === "/" || currentPath === "/dhruva" || currentPath === "/dhruva/" || !currentPath.startsWith("/dhruva");
+  if (!isLoginPage) {
     localStorage.setItem("current_page", window.location.href);
   }
   config.headers["request-startTime"] = new Date().getTime();
@@ -49,6 +54,14 @@ apiInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.error('[API] Request error:', error);
+
+    // Check if error.response exists (network errors might not have response)
+    if (!error.response) {
+      console.error('[API] Network error - no response received:', error.message);
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
     if (
       error.response.status === 401 &&

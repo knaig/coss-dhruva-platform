@@ -1,6 +1,5 @@
 import React from "react";
-import Error from "../public/404.svg";
-import Image from "next/image";
+import BaseImage from "../components/Common/BaseImage";
 import { Box, Button, Flex,  VStack } from "@chakra-ui/react";
 import Head from "next/head";
 import { AiOutlineLeft } from "react-icons/ai";
@@ -14,7 +13,7 @@ function ErrorPage() {
     <Box minH={"100vh"}>
       <Flex justify="center" align="center" h="90vh">
         <VStack>
-          <Image alt="404 Error" src={Error} />
+          <BaseImage alt="404 Error" src="/404.svg" width={400} height={400} />
           {/* <Button onClick={()=>router.push(localStorage.getItem("current_page"))}><AiOutlineLeft/> &nbsp;Go Back</Button> */}
         </VStack>
       </Flex>

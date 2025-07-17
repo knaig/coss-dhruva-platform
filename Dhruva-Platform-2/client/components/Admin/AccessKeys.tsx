@@ -28,7 +28,7 @@ import {
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import Image from "next/image";
+import BaseImage from "../Common/BaseImage";
 import React, { useEffect, useState } from "react";
 import { IoSearchOutline } from "react-icons/io5";
 import { MdVpnKey } from "react-icons/md";
@@ -531,11 +531,11 @@ const AccessKeys = () => {
                 >
                   <Spacer />
                   <Box textAlign={"center"} display={hide ? "none" : "block"}>
-                    <Image
+                    <BaseImage
                       height={smallscreen ? 300 : 400}
                       width={smallscreen ? 300 : 400}
                       alt="No Results Found"
-                      src="NoResults.svg"
+                      src="/NoResults.svg"
                     />
                     <Text fontSize={"lg"} color="gray.400">
                       {"Uh Oh! No Keys Found"}
@@ -597,11 +597,11 @@ const AccessKeys = () => {
           <HStack background={"gray.50"} width={smallscreen ? "100vw" : "auto"}>
             <Spacer />
             <Box textAlign={"center"} display={"block"}>
-              <Image
+              <BaseImage
                 height={smallscreen ? 300 : 400}
                 width={smallscreen ? 300 : 400}
                 alt="No Results Found"
-                src="NoResults.svg"
+                src="/NoResults.svg"
               />
               <Text fontSize={"lg"} color="gray.400">
                 {"Select a User to Display Keys"}

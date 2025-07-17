@@ -1,6 +1,5 @@
 import React from "react";
-import Error from "../public/403.svg";
-import Image from "next/image";
+import BaseImage from "../components/Common/BaseImage";
 import { Box, Flex,  VStack } from "@chakra-ui/react";
 import Head from "next/head";
 function ErrorPage() {
@@ -12,7 +11,7 @@ function ErrorPage() {
     <Box minH={"100vh"}>
       <Flex justify="center" align="center" h="90vh">
         <VStack>
-          <Image alt="403 Error" src={Error} />
+          <BaseImage alt="403 Error" src="/403.svg" width={400} height={400} />
         </VStack>
       </Flex>
     </Box>

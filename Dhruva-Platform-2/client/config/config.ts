@@ -34,7 +34,7 @@ const lang2label: { [key: string]: string } = {
   te : "Telugu",
   ur : "Urdu",
 };
-const dhruvaRootURL: string = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+const dhruvaRootURL: string = "http://13.203.149.17:8000";
 
 const dhruvaConfig: { [key: string]: string } = {
   listServices: `${dhruvaRootURL}/services/details/list_services`,

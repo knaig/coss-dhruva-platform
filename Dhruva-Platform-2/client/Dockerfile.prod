@@ -1,14 +1,60 @@
-FROM node:lts-alpine
+# Multi-stage build for optimized production image
+FROM node:lts-alpine AS dependencies
 
+# Install system dependencies
 RUN apk update \
     && apk upgrade \
-    && apk add --no-cache --upgrade bash \
-    && apk add git
+    && apk add --no-cache --upgrade bash git
 
 WORKDIR /usr/app
-COPY . /usr/app
 
-RUN yarn install
+# Copy package files
+COPY package*.json ./
+COPY yarn.lock* ./
+
+# Install dependencies
+RUN yarn install --frozen-lockfile --production=false
+
+# Build stage
+FROM node:lts-alpine AS builder
+
+WORKDIR /usr/app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /usr/app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Build the application
 RUN yarn build
 
-# CMD yarn start
+# Production stage
+FROM node:lts-alpine AS runner
+
+WORKDIR /usr/app
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder /usr/app/public ./public
+COPY --from=builder /usr/app/.next/standalone ./
+COPY --from=builder /usr/app/.next/static ./.next/static
+
+# Set ownership
+RUN chown -R nextjs:nodejs /usr/app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port 3001
+EXPOSE 3001
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Start the application on port 3001
+CMD ["node", "server.js"]
