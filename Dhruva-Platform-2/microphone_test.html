@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .recording {
+            background: #dc3545;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 Microphone Recording Test</h1>
+    
+    <div class="test-section">
+        <h2>Browser Compatibility Check</h2>
+        <div id="compatibility-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Microphone Recording Test</h2>
+        <button id="recordBtn" class="button">Start Recording</button>
+        <button id="stopBtn" class="button" disabled>Stop Recording</button>
+        <button id="playBtn" class="button" disabled>Play Recording</button>
+        <button id="clearBtn" class="button">Clear Log</button>
+        
+        <div>
+            <strong>Status:</strong> <span id="status">Ready</span>
+        </div>
+        
+        <div>
+            <strong>Audio Info:</strong> <span id="audioInfo">None</span>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream;
+        let audioBlob;
+
+        const log = (message) => {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        };
+
+        const updateStatus = (status) => {
+            document.getElementById('status').textContent = status;
+            log(`Status: ${status}`);
+        };
+
+        const updateAudioInfo = (info) => {
+            document.getElementById('audioInfo').textContent = info;
+        };
+
+        // Check browser compatibility
+        const checkCompatibility = () => {
+            const results = document.getElementById('compatibility-results');
+            let html = '';
+
+            // Check MediaDevices API
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                html += '✅ MediaDevices API supported<br>';
+            } else {
+                html += '❌ MediaDevices API not supported<br>';
+            }
+
+            // Check MediaRecorder API
+            if (window.MediaRecorder) {
+                html += '✅ MediaRecorder API supported<br>';
+                
+                // Check supported MIME types
+                const mimeTypes = [
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                    'audio/mp4',
+                    'audio/ogg;codecs=opus',
+                    'audio/wav'
+                ];
+                
+                html += '<strong>Supported MIME types:</strong><br>';
+                mimeTypes.forEach(type => {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        html += `✅ ${type}<br>`;
+                    } else {
+                        html += `❌ ${type}<br>`;
+                    }
+                });
+            } else {
+                html += '❌ MediaRecorder API not supported<br>';
+            }
+
+            // Check AudioContext
+            if (window.AudioContext || window.webkitAudioContext) {
+                html += '✅ AudioContext supported<br>';
+            } else {
+                html += '❌ AudioContext not supported<br>';
+            }
+
+            results.innerHTML = html;
+        };
+
+        const startRecording = async () => {
+            try {
+                updateStatus('Requesting microphone access...');
+                
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                log('Microphone access granted');
+
+                // Try different MIME types
+                const mimeTypes = [
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                    'audio/mp4',
+                    'audio/ogg;codecs=opus'
+                ];
+
+                let options = {};
+                for (const mimeType of mimeTypes) {
+                    if (MediaRecorder.isTypeSupported(mimeType)) {
+                        options.mimeType = mimeType;
+                        log(`Using MIME type: ${mimeType}`);
+                        break;
+                    }
+                }
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunks = [];
+
+                log(`MediaRecorder created with MIME type: ${mediaRecorder.mimeType}`);
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                        log(`Audio chunk received: ${e.data.size} bytes, type: ${e.data.type}`);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    log('Recording stopped');
+                    const actualMimeType = mediaRecorder.mimeType || 'audio/webm';
+                    audioBlob = new Blob(recordedChunks, { type: actualMimeType });
+                    
+                    updateAudioInfo(`Type: ${audioBlob.type}, Size: ${audioBlob.size} bytes`);
+                    log(`Audio blob created - Type: ${audioBlob.type}, Size: ${audioBlob.size} bytes`);
+                    
+                    document.getElementById('playBtn').disabled = false;
+                    updateStatus('Recording complete');
+                };
+
+                mediaRecorder.onerror = (e) => {
+                    log(`MediaRecorder error: ${e.error}`);
+                    updateStatus('Recording error');
+                };
+
+                mediaRecorder.start(500);
+                updateStatus('Recording...');
+                
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('stopBtn').disabled = false;
+
+            } catch (err) {
+                log(`Error starting recording: ${err.message}`);
+                updateStatus('Error');
+            }
+        };
+
+        const stopRecording = () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            document.getElementById('recordBtn').disabled = false;
+            document.getElementById('recordBtn').classList.remove('recording');
+            document.getElementById('stopBtn').disabled = true;
+        };
+
+        const playRecording = () => {
+            if (audioBlob) {
+                const audio = new Audio(URL.createObjectURL(audioBlob));
+                audio.play().catch(err => {
+                    log(`Error playing audio: ${err.message}`);
+                });
+                log('Playing recorded audio');
+            }
+        };
+
+        const clearLog = () => {
+            document.getElementById('log').textContent = '';
+        };
+
+        // Event listeners
+        document.getElementById('recordBtn').addEventListener('click', startRecording);
+        document.getElementById('stopBtn').addEventListener('click', stopRecording);
+        document.getElementById('playBtn').addEventListener('click', playRecording);
+        document.getElementById('clearBtn').addEventListener('click', clearLog);
+
+        // Initialize
+        checkCompatibility();
+        updateStatus('Ready');
+        log('Microphone test initialized');
+    </script>
+</body>
+</html>

@@ -356,7 +356,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Convert audio blob to WAV format
+   * Convert audio blob to WAV format with 16kHz resampling for optimal ASR compatibility
    */
   private async convertToWav(audioBlob: Blob): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -368,11 +368,9 @@ export class AudioRecorder {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-          // Convert to WAV format
-          const wavBuffer = this.audioBufferToWav(audioBuffer);
-          const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-
-          resolve(wavBlob);
+          // Convert to 16kHz mono for optimal ASR compatibility
+          const convertedBlob = await this.convertTo16kHzMono(audioBlob);
+          resolve(convertedBlob);
         } catch (error) {
           console.error('[AudioRecorder] Error converting to WAV:', error);
           reject(error);
@@ -381,6 +379,57 @@ export class AudioRecorder {
 
       fileReader.onerror = () => reject(new Error('Failed to read audio file'));
       fileReader.readAsArrayBuffer(audioBlob);
+    });
+  }
+
+  /**
+   * Convert audio blob to 16kHz mono WAV format using AudioContext and OfflineAudioContext
+   * This provides the highest quality conversion for ASR compatibility
+   */
+  private async convertTo16kHzMono(blob: Blob): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        try {
+          const arrayBuffer = reader.result as ArrayBuffer;
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          // Create offline context for 16kHz mono conversion
+          const targetSampleRate = 16000;
+          const targetChannels = 1;
+          const duration = audioBuffer.duration;
+
+          const offlineContext = new OfflineAudioContext(
+            targetChannels,
+            duration * targetSampleRate,
+            targetSampleRate
+          );
+
+          // Create buffer source
+          const source = offlineContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(offlineContext.destination);
+          source.start(0);
+
+          // Render the audio at 16kHz
+          const renderedBuffer = await offlineContext.startRendering();
+
+          // Encode the rendered buffer to WAV format
+          const wavBuffer = this.audioBufferToWav(renderedBuffer);
+          const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+          console.log(`[AudioRecorder] Converted to 16kHz mono WAV: ${wavBlob.size} bytes`);
+          resolve(wavBlob);
+        } catch (error) {
+          console.error('[AudioRecorder] Error in convertTo16kHzMono:', error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => reject(new Error('Failed to read audio blob'));
+      reader.readAsArrayBuffer(blob);
     });
   }
 
@@ -579,22 +628,110 @@ export async function processUploadedAudioFile(
     return file;
   }
 
-  // Convert to WAV if needed
+  // Convert to 16kHz WAV for optimal ASR compatibility
   try {
-    console.log('[AudioRecorder] Converting uploaded file to WAV format...');
-    const arrayBuffer = await file.arrayBuffer();
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // Use the same WAV conversion logic
-    const recorder = new AudioRecorder();
-    const wavBuffer = (recorder as any).audioBufferToWav(audioBuffer);
-    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-
-    console.log('[AudioRecorder] File converted to WAV, new size:', wavBlob.size, 'bytes');
-    return new File([wavBlob], 'converted.wav', { type: 'audio/wav' });
+    console.log('[AudioRecorder] Converting uploaded file to 16kHz WAV format...');
+    const convertedBlob = await convertTo16kHzMono(file);
+    console.log('[AudioRecorder] File converted to 16kHz WAV, new size:', convertedBlob.size, 'bytes');
+    return new File([convertedBlob], 'converted.wav', { type: 'audio/wav' });
   } catch (conversionErr) {
     console.log('[AudioRecorder] File conversion failed, using original file:', conversionErr);
     return file; // Use original file if conversion fails
   }
+}
+
+/**
+ * Standalone utility function to convert any audio blob to 16kHz mono WAV format
+ * This function can be used across all components for consistent audio processing
+ */
+export async function convertTo16kHzMono(blob: Blob): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        // Create offline context for 16kHz mono conversion
+        const targetSampleRate = 16000;
+        const targetChannels = 1;
+        const duration = audioBuffer.duration;
+
+        const offlineContext = new OfflineAudioContext(
+          targetChannels,
+          duration * targetSampleRate,
+          targetSampleRate
+        );
+
+        // Create buffer source
+        const source = offlineContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineContext.destination);
+        source.start(0);
+
+        // Render the audio at 16kHz
+        const renderedBuffer = await offlineContext.startRendering();
+
+        // Encode the rendered buffer to WAV format
+        const wavBuffer = audioBufferToWav(renderedBuffer);
+        const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+        console.log(`[convertTo16kHzMono] Converted to 16kHz mono WAV: ${wavBlob.size} bytes`);
+        resolve(wavBlob);
+      } catch (error) {
+        console.error('[convertTo16kHzMono] Conversion error:', error);
+        reject(error);
+      }
+    };
+
+    reader.onerror = () => reject(new Error('Failed to read audio blob'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+/**
+ * Standalone utility function to convert AudioBuffer to WAV format
+ * This function can be used independently for WAV encoding
+ */
+export function audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
+  const length = buffer.length;
+  const numberOfChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+  const view = new DataView(arrayBuffer);
+
+  // WAV header
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numberOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+  view.setUint16(32, numberOfChannels * 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, length * numberOfChannels * 2, true);
+
+  // Convert audio data
+  let offset = 44;
+  for (let i = 0; i < length; i++) {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  return arrayBuffer;
 }

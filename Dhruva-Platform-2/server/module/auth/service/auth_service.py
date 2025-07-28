@@ -352,15 +352,18 @@ class AuthService:
         return keys, total_usage
 
     def get_all_api_keys(self, params: GetAllApiKeysRequest, id: ObjectId):
-        try:
-            user_id = (
-                id if not params.target_user_id else ObjectId(params.target_user_id)
-            )
-        except Exception:
-            raise ClientError(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="Invalid target user id",
-            )
+        # Handle null/empty target_user_id - use current user's ID
+        if not params.target_user_id or params.target_user_id.lower() in ["null", "undefined", ""]:
+            user_id = id
+        else:
+            # Validate ObjectId format
+            try:
+                user_id = ObjectId(params.target_user_id)
+            except Exception:
+                raise ClientError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message=f"Invalid target user ID format: {params.target_user_id}",
+                )
 
         try:
             keys = self.api_key_repository.find({"user_id": user_id})
@@ -382,13 +385,26 @@ class AuthService:
         Args:
             - page: Current page
             - limit: Number of documents per page
-            - target_user_id: User id to filter api keys with
+            - target_user_id: User id to filter api keys with (can be "null" for all users)
         Returns:
             - List[APIKeys]
             - total_usage
             - total_pages
         """
-        keys = self.api_key_repository.find({"user_id": ObjectId(target_user_id)})
+        # Handle null/empty target_user_id - fetch all API keys
+        if not target_user_id or target_user_id.lower() in ["null", "undefined", ""]:
+            keys = self.api_key_repository.find({})
+        else:
+            # Validate ObjectId format
+            try:
+                user_object_id = ObjectId(target_user_id)
+                keys = self.api_key_repository.find({"user_id": user_object_id})
+            except Exception:
+                raise ClientError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message=f"Invalid user ID format: {target_user_id}"
+                )
+
         total_usage = sum(k.usage for k in keys)
 
         return (

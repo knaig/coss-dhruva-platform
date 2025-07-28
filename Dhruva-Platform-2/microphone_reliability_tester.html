@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Reliability Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success { background: #28a745; }
+        .failure { background: #dc3545; }
+        .recording { background: #ffc107; color: black; }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .results-table th {
+            background-color: #f2f2f2;
+        }
+        .success-row { background-color: #d4edda; }
+        .failure-row { background-color: #f8d7da; }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 Microphone Reliability Tester</h1>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button id="startTestBtn" class="button">Start Reliability Test (15 attempts)</button>
+        <button id="singleTestBtn" class="button">Single Test</button>
+        <button id="stopTestBtn" class="button" disabled>Stop Test</button>
+        <button id="clearResultsBtn" class="button">Clear Results</button>
+        <button id="exportResultsBtn" class="button">Export Results</button>
+        
+        <div>
+            <label>
+                Recording Duration (seconds): 
+                <input type="number" id="recordingDuration" value="3" min="1" max="10">
+            </label>
+        </div>
+        
+        <div>
+            <strong>Current Test:</strong> <span id="currentTest">None</span>
+        </div>
+        <div>
+            <strong>Status:</strong> <span id="status">Ready</span>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Statistics</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTests">0</div>
+                <div>Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="successCount">0</div>
+                <div>Successes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="failureCount">0</div>
+                <div>Failures</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="successRate">0%</div>
+                <div>Success Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgDuration">0ms</div>
+                <div>Avg Duration</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <table class="results-table" id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Test #</th>
+                    <th>Result</th>
+                    <th>Duration</th>
+                    <th>Audio Size</th>
+                    <th>Audio Type</th>
+                    <th>ASR Status</th>
+                    <th>Error</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>Detailed Logs</h2>
+        <button class="button" onclick="clearLog()">Clear Log</button>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let currentTestNumber = 0;
+        let isTestRunning = false;
+        let testStartTime = 0;
+
+        const log = (message, level = 'info') => {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const prefix = level === 'error' ? '❌' : level === 'success' ? '✅' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${level.toUpperCase()}] ${message}`);
+        };
+
+        const updateStatus = (status) => {
+            document.getElementById('status').textContent = status;
+        };
+
+        const updateStats = () => {
+            const total = testResults.length;
+            const successes = testResults.filter(r => r.success).length;
+            const failures = total - successes;
+            const successRate = total > 0 ? Math.round((successes / total) * 100) : 0;
+            const avgDuration = total > 0 ? Math.round(testResults.reduce((sum, r) => sum + r.duration, 0) / total) : 0;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('successCount').textContent = successes;
+            document.getElementById('failureCount').textContent = failures;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+            document.getElementById('avgDuration').textContent = `${avgDuration}ms`;
+        };
+
+        const addTestResult = (result) => {
+            testResults.push(result);
+            
+            const tbody = document.getElementById('resultsBody');
+            const row = tbody.insertRow(0); // Insert at top
+            row.className = result.success ? 'success-row' : 'failure-row';
+            
+            row.innerHTML = `
+                <td>${result.testNumber}</td>
+                <td>${result.success ? '✅ Success' : '❌ Failure'}</td>
+                <td>${result.duration}ms</td>
+                <td>${result.audioSize || 'N/A'}</td>
+                <td>${result.audioType || 'N/A'}</td>
+                <td>${result.asrStatus || 'N/A'}</td>
+                <td>${result.error || 'None'}</td>
+                <td>${result.timestamp}</td>
+            `;
+            
+            updateStats();
+        };
+
+        const performSingleTest = async () => {
+            currentTestNumber++;
+            const testNumber = currentTestNumber;
+            testStartTime = Date.now();
+            
+            document.getElementById('currentTest').textContent = `Test #${testNumber}`;
+            updateStatus('Starting test...');
+            
+            log(`Starting Test #${testNumber}`, 'info');
+            
+            const result = {
+                testNumber,
+                timestamp: new Date().toLocaleTimeString(),
+                success: false,
+                duration: 0,
+                audioSize: null,
+                audioType: null,
+                asrStatus: null,
+                error: null
+            };
+
+            try {
+                // Test microphone recording
+                const recordingResult = await testMicrophoneRecording();
+                
+                result.duration = Date.now() - testStartTime;
+                result.audioSize = recordingResult.audioSize;
+                result.audioType = recordingResult.audioType;
+                result.asrStatus = recordingResult.asrStatus;
+                result.success = recordingResult.success;
+                result.error = recordingResult.error;
+                
+                if (result.success) {
+                    log(`Test #${testNumber} completed successfully in ${result.duration}ms`, 'success');
+                    updateStatus('Test completed successfully');
+                } else {
+                    log(`Test #${testNumber} failed: ${result.error}`, 'error');
+                    updateStatus('Test failed');
+                }
+                
+            } catch (error) {
+                result.duration = Date.now() - testStartTime;
+                result.error = error.message;
+                log(`Test #${testNumber} threw exception: ${error.message}`, 'error');
+                updateStatus('Test failed with exception');
+            }
+            
+            addTestResult(result);
+            return result;
+        };
+
+        const testMicrophoneRecording = async () => {
+            return new Promise(async (resolve) => {
+                let mediaRecorder;
+                let stream;
+                let recordedChunks = [];
+                const duration = parseInt(document.getElementById('recordingDuration').value) * 1000;
+                
+                const result = {
+                    success: false,
+                    audioSize: null,
+                    audioType: null,
+                    asrStatus: null,
+                    error: null
+                };
+
+                try {
+                    // Step 1: Get microphone access
+                    log('Requesting microphone access...');
+                    updateStatus('Requesting microphone...');
+                    
+                    const constraints = {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: 16000,
+                            channelCount: 1
+                        }
+                    };
+
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    log('Microphone access granted');
+
+                    // Step 2: Create MediaRecorder
+                    const mimeTypes = [
+                        'audio/webm;codecs=opus',
+                        'audio/webm',
+                        'audio/mp4',
+                        'audio/ogg;codecs=opus'
+                    ];
+
+                    let options = {};
+                    for (const mimeType of mimeTypes) {
+                        if (MediaRecorder.isTypeSupported(mimeType)) {
+                            options.mimeType = mimeType;
+                            break;
+                        }
+                    }
+
+                    mediaRecorder = new MediaRecorder(stream, options);
+                    log(`MediaRecorder created with MIME type: ${mediaRecorder.mimeType}`);
+
+                    // Step 3: Set up recording handlers
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            recordedChunks.push(e.data);
+                            log(`Audio chunk: ${e.data.size} bytes`);
+                        }
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        log('Recording stopped, processing...');
+                        
+                        try {
+                            // Create audio blob
+                            const actualMimeType = mediaRecorder.mimeType || 'audio/webm';
+                            const audioBlob = new Blob(recordedChunks, { type: actualMimeType });
+                            
+                            result.audioSize = audioBlob.size;
+                            result.audioType = audioBlob.type;
+                            
+                            log(`Audio blob created: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+                            
+                            if (audioBlob.size < 1000) {
+                                throw new Error('Audio too small');
+                            }
+                            
+                            // Simulate ASR request (replace with actual ASR call)
+                            const asrResult = await simulateASRRequest(audioBlob);
+                            result.asrStatus = asrResult.status;
+                            
+                            if (asrResult.success) {
+                                result.success = true;
+                                log('ASR request successful');
+                            } else {
+                                result.error = asrResult.error;
+                                log(`ASR request failed: ${asrResult.error}`);
+                            }
+                            
+                        } catch (error) {
+                            result.error = error.message;
+                            log(`Processing error: ${error.message}`);
+                        }
+                        
+                        // Cleanup
+                        if (stream) {
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+                        
+                        resolve(result);
+                    };
+
+                    mediaRecorder.onerror = (e) => {
+                        result.error = `MediaRecorder error: ${e.error}`;
+                        log(result.error);
+                        resolve(result);
+                    };
+
+                    // Step 4: Start recording
+                    updateStatus('Recording...');
+                    mediaRecorder.start(500);
+                    log(`Recording started for ${duration}ms`);
+
+                    // Step 5: Stop recording after duration
+                    setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                            mediaRecorder.stop();
+                        }
+                    }, duration);
+
+                } catch (error) {
+                    result.error = error.message;
+                    log(`Setup error: ${error.message}`);
+                    
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    resolve(result);
+                }
+            });
+        };
+
+        const simulateASRRequest = async (audioBlob) => {
+            // Replace this with actual ASR request to test real functionality
+            try {
+                const formData = new FormData();
+                formData.append('audio', new File([audioBlob], 'recording.wav', { type: 'audio/wav' }));
+                formData.append('config', JSON.stringify({
+                    controlConfig: { dataTracking: true },
+                    config: {
+                        audioFormat: 'wav',
+                        language: { sourceLanguage: 'hi', sourceScriptCode: '' },
+                        encoding: 'LINEAR16',
+                        samplingRate: 16000,
+                        serviceId: 'ai4bharat/indictasr',
+                        preProcessors: [],
+                        postProcessors: [],
+                        transcriptionFormat: { value: 'transcript' },
+                        bestTokenCount: 0,
+                    }
+                }));
+                formData.append('sampleRate', '16000');
+                formData.append('channels', '1');
+                formData.append('format', 'wav');
+
+                const response = await fetch('/api/asr', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return {
+                        success: true,
+                        status: response.status,
+                        error: null,
+                        transcript: data.output?.[0]?.transcript || 'No transcript'
+                    };
+                } else {
+                    return {
+                        success: false,
+                        status: response.status,
+                        error: `HTTP ${response.status}: ${await response.text()}`
+                    };
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    status: 0,
+                    error: `Network error: ${error.message}`
+                };
+            }
+        };
+
+        const runReliabilityTest = async () => {
+            isTestRunning = true;
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('stopTestBtn').disabled = false;
+            
+            log('Starting reliability test with 15 attempts', 'info');
+            
+            for (let i = 0; i < 15 && isTestRunning; i++) {
+                await performSingleTest();
+                
+                // Wait between tests
+                if (i < 14 && isTestRunning) {
+                    updateStatus(`Waiting before next test... (${i + 1}/15 completed)`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            
+            if (isTestRunning) {
+                log('Reliability test completed', 'success');
+                updateStatus('Test completed');
+            } else {
+                log('Reliability test stopped by user', 'info');
+                updateStatus('Test stopped');
+            }
+            
+            isTestRunning = false;
+            document.getElementById('startTestBtn').disabled = false;
+            document.getElementById('stopTestBtn').disabled = true;
+        };
+
+        const stopTest = () => {
+            isTestRunning = false;
+            updateStatus('Stopping test...');
+        };
+
+        const clearResults = () => {
+            testResults = [];
+            document.getElementById('resultsBody').innerHTML = '';
+            updateStats();
+            log('Results cleared', 'info');
+        };
+
+        const clearLog = () => {
+            document.getElementById('log').textContent = '';
+        };
+
+        const exportResults = () => {
+            const data = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                results: testResults,
+                stats: {
+                    total: testResults.length,
+                    successes: testResults.filter(r => r.success).length,
+                    failures: testResults.filter(r => !r.success).length,
+                    successRate: testResults.length > 0 ? (testResults.filter(r => r.success).length / testResults.length * 100) : 0
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `microphone-test-results-${new Date().toISOString().slice(0, 19)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Event listeners
+        document.getElementById('startTestBtn').addEventListener('click', runReliabilityTest);
+        document.getElementById('singleTestBtn').addEventListener('click', performSingleTest);
+        document.getElementById('stopTestBtn').addEventListener('click', stopTest);
+        document.getElementById('clearResultsBtn').addEventListener('click', clearResults);
+        document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+
+        // Initialize
+        updateStats();
+        updateStatus('Ready');
+        log('Microphone reliability tester initialized');
+    </script>
+</body>
+</html>

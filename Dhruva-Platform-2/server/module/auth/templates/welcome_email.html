@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Dhruva Platform - Your Account is Ready!</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+        .api-key-section {
+            background-color: #f8f9fa;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .api-key-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .api-key-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 10px 0;
+            word-break: break-all;
+            color: #495057;
+        }
+        .api-key-warning {
+            font-size: 12px;
+            color: #dc3545;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .features-section {
+            margin: 30px 0;
+        }
+        .features-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .feature-icon {
+            color: #28a745;
+            font-size: 20px;
+            margin-right: 15px;
+            min-width: 20px;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            margin: 0 10px 10px 0;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        .btn-secondary {
+            display: inline-block;
+            background: transparent;
+            color: #28a745;
+            border: 2px solid #28a745;
+            padding: 13px 38px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin: 0 10px 10px 0;
+        }
+        .btn-secondary:hover {
+            background: #28a745;
+            color: white;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .footer .brand {
+            font-weight: 600;
+            color: #495057;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .content {
+                padding: 30px 20px;
+            }
+            .btn-primary, .btn-secondary {
+                display: block;
+                margin: 10px 0;
+                padding: 12px 30px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="success-icon">🎉</div>
+            <h1>Welcome to Dhruva Platform!</h1>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Hello {{name}},
+            </div>
+            
+            <div class="message">
+                Congratulations! Your email has been successfully verified and your Dhruva Platform account is now active. You're all set to start exploring our AI and language technology services.
+            </div>
+            
+            <div class="api-key-section">
+                <div class="api-key-title">🔑 Your API Key</div>
+                <div class="message">We've automatically generated your default API key:</div>
+                <div class="api-key-value">{{api_key}}</div>
+                <div class="api-key-warning">⚠️ Please save this API key securely. For security reasons, this is the only time it will be displayed in full.</div>
+            </div>
+            
+            <div class="features-section">
+                <div class="features-title">What you can do now:</div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">🚀</span>
+                        <span>Access our comprehensive suite of AI models and services</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        <span>Monitor your API usage and track performance metrics</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">🔧</span>
+                        <span>Integrate our APIs into your applications and workflows</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">📚</span>
+                        <span>Explore our documentation and example implementations</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">💬</span>
+                        <span>Get support from our developer community</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="btn-container">
+                <a href="{{frontend_base_url}}/dashboard" class="btn-primary">
+                    Go to Dashboard
+                </a>
+                <a href="{{frontend_base_url}}/docs" class="btn-secondary">
+                    View Documentation
+                </a>
+            </div>
+            
+            <div class="message">
+                If you have any questions or need assistance getting started, don't hesitate to reach out to our support team. We're here to help you succeed!
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Dhruva Platform for your AI and language technology needs.</p>
+            <p>This is an automated message, please do not reply to this email.</p>
+            <p class="brand">Best regards,<br>The Dhruva Platform Team</p>
+        </div>
+    </div>
+</body>
+</html>

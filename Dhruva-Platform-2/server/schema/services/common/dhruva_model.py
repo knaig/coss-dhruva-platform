@@ -6,15 +6,9 @@ from pydantic import BaseModel, Field
 from .ulca_task import _ULCATask
 
 
-class _OAuthId(BaseModel):
-    oauthId: str
-    provider: str
-
-
 class _SubmitterDetails(BaseModel):
     name: str
     aboutMe: Optional[str]
-    oauthId: Optional[_OAuthId]
 
 
 class _Submitter(BaseModel):
