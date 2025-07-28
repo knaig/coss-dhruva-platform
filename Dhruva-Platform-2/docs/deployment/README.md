@@ -1,5 +1,8 @@
 # Deployment Guide
 
+> **🔒 SECURITY NOTICE**: This documentation contains examples with placeholder credentials.
+> Always use environment variables for actual passwords. Never commit real credentials to version control.
+
 ## 🚀 Overview
 
 This guide provides comprehensive instructions for deploying the Dhruva Platform in various environments, from local development to production-ready deployments.
@@ -64,22 +67,22 @@ nano .env
 
 ```bash
 # Database Configuration
-MONGO_APP_DB_USERNAME=dhruvaadmin
-MONGO_APP_DB_PASSWORD=dhruva123
+MONGO_APP_DB_USERNAME=your-mongo-username
+MONGO_APP_DB_PASSWORD=your-secure-mongo-password
 APP_DB_NAME=admin
-APP_DB_CONNECTION_STRING=mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin
+APP_DB_CONNECTION_STRING=mongodb://${MONGO_APP_DB_USERNAME}:${MONGO_APP_DB_PASSWORD}@dhruva-platform-app-db:27017/admin
 
 # TimescaleDB Configuration
 TIMESCALE_HOST=dhruva-platform-timescaledb
 TIMESCALE_PORT=5432
-TIMESCALE_USER=dhruva
-TIMESCALE_PASSWORD=dhruva123
+TIMESCALE_USER=your-timescale-username
+TIMESCALE_PASSWORD=your-secure-timescale-password
 TIMESCALE_DATABASE_NAME=dhruva_metering
 
 # Redis Configuration
 REDIS_HOST=dhruva-platform-redis
 REDIS_PORT=6379
-REDIS_PASSWORD=dhruva123
+REDIS_PASSWORD=your-secure-redis-password
 
 # RabbitMQ Configuration
 RABBITMQ_DEFAULT_USER=admin
@@ -554,7 +557,7 @@ mkdir -p $BACKUP_DIR
 
 # MongoDB backup
 docker exec dhruva-platform-app-db mongodump \
-  --username dhruvaadmin --password dhruva123 \
+  --username $MONGO_APP_DB_USERNAME --password $MONGO_APP_DB_PASSWORD \
   --authenticationDatabase admin \
   --out $BACKUP_DIR/mongodb
 
@@ -583,7 +586,7 @@ docker compose down
 
 # Restore MongoDB
 docker exec dhruva-platform-app-db mongorestore \
-  --username dhruvaadmin --password dhruva123 \
+  --username $MONGO_APP_DB_USERNAME --password $MONGO_APP_DB_PASSWORD \
   --authenticationDatabase admin \
   --drop $BACKUP_DIR/mongodb
 

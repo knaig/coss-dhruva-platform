@@ -1,5 +1,8 @@
 # Dhruva Platform - Quick Reference
 
+> **🔒 SECURITY NOTICE**: This documentation contains examples with placeholder credentials.
+> Always use environment variables for actual passwords. Never commit real credentials to version control.
+
 ## Common AI Prompts for Development
 
 ### Backend Development
@@ -203,7 +206,7 @@ docker logs celery-metering --tail 100 -f
 ```bash
 # Connect to MongoDB
 docker exec -it dhruva-platform-app-db mongosh \
-  --username dhruvaadmin --password dhruva123 --authenticationDatabase admin
+  --username $MONGO_APP_DB_USERNAME --password $MONGO_APP_DB_PASSWORD --authenticationDatabase admin
 
 # Connect to Redis
 docker exec -it dhruva-platform-redis redis-cli
@@ -269,18 +272,18 @@ Dhruva-Platform-2/
 
 ```bash
 # Database
-MONGO_APP_DB_USERNAME=dhruvaadmin
-MONGO_APP_DB_PASSWORD=dhruva123
+MONGO_APP_DB_USERNAME=your-mongo-username
+MONGO_APP_DB_PASSWORD=your-secure-mongo-password
 APP_DB_NAME=admin
 
 # Redis
 REDIS_HOST=dhruva-platform-redis
 REDIS_PORT=6379
-REDIS_PASSWORD=dhruva123
+REDIS_PASSWORD=your-secure-redis-password
 
 # TimescaleDB
-TIMESCALE_USER=dhruva
-TIMESCALE_PASSWORD=dhruva123
+TIMESCALE_USER=your-timescale-username
+TIMESCALE_PASSWORD=your-secure-timescale-password
 TIMESCALE_DATABASE_NAME=dhruva_metering
 
 # RabbitMQ
@@ -313,14 +316,14 @@ docker inspect dhruva-platform-server --format='{{.State.Health.Status}}'
 # Test MongoDB connection
 docker exec dhruva-platform-server python -c "
 from pymongo import MongoClient
-client = MongoClient('mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin')
+client = MongoClient('mongodb://\$MONGO_APP_DB_USERNAME:\$MONGO_APP_DB_PASSWORD@dhruva-platform-app-db:27017/admin?authSource=admin')
 print('MongoDB:', client.admin.list_collection_names())
 "
 
 # Test Redis connection
 docker exec dhruva-platform-server python -c "
 import redis
-r = redis.Redis(host='dhruva-platform-redis', port=6379, password='dhruva123')
+r = redis.Redis(host='dhruva-platform-redis', port=6379, password='\$REDIS_PASSWORD')
 print('Redis ping:', r.ping())
 "
 ```
@@ -353,9 +356,9 @@ docker stats dhruva-platform-server dhruva-platform-app-db dhruva-platform-redis
 ## Service URLs
 
 ### Internal (Docker Network)
-- MongoDB: `mongodb://dhruvaadmin:dhruva123@dhruva-platform-app-db:27017/admin?authSource=admin`
-- Redis: `redis://:dhruva123@dhruva-platform-redis:6379`
-- RabbitMQ: `amqp://admin:admin123@dhruva-platform-rabbitmq:5672/dhruva_host`
+- MongoDB: `mongodb://$MONGO_APP_DB_USERNAME:$MONGO_APP_DB_PASSWORD@dhruva-platform-app-db:27017/admin?authSource=admin`
+- Redis: `redis://:$REDIS_PASSWORD@dhruva-platform-redis:6379`
+- RabbitMQ: `amqp://$RABBITMQ_DEFAULT_USER:$RABBITMQ_DEFAULT_PASS@dhruva-platform-rabbitmq:5672/dhruva_host`
 
 ### External (Host Access)
 - API Server: http://localhost:8000
